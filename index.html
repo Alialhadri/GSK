@@ -157,9 +157,61 @@ textarea.msgbox{width:100%;min-height:120px;background:var(--whatsbg);border:1px
 .flow .step{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:11.5px}
 .flow .arr{color:var(--teal);font-weight:700}
 @media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.two,.three,.botwrap,.msgcentre,.composegrid{grid-template-columns:1fr}.side{display:none}}
+/* risk calculator */
+.chk{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;cursor:pointer}
+.chk input{accent-color:var(--teal);width:16px;height:16px}
+.result{border-radius:12px;padding:16px;border:1px solid var(--line)}
+.result.elig{background:linear-gradient(135deg,rgba(39,192,138,.14),transparent);border-color:rgba(39,192,138,.4)}
+.result.no{background:linear-gradient(135deg,rgba(148,166,184,.12),transparent)}
+.result h4{margin:0 0 8px;font-size:16px}
+.result .line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.result .line:last-child{border:0}
+.riskbar{height:8px;border-radius:8px;background:var(--panel2);overflow:hidden;margin-top:6px}
+.riskbar i{display:block;height:100%}
+/* barriers */
+.bcard{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:9px}
+.bcard b{font-size:13px}
+.bsub{font-size:10.5px;color:var(--faint);margin:2px 0 6px}
+.bmsg{font-size:12px;color:var(--muted);direction:rtl;text-align:right;line-height:1.5}
+.bcard .bmsg:not([dir]){direction:rtl}
+/* sign-in gate */
+#gate{position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 30% 20%,#10342f,#0b121a 70%);display:flex;align-items:center;justify-content:center}
+.gatebox{width:380px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px 28px;box-shadow:var(--shadow)}
+.gatebox .gb{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+.gatebox h2{font-size:17px;margin:18px 0 4px}
+.gatebox .gsub{color:var(--muted);font-size:12px;margin-bottom:16px}
+.gatebox label{display:block;font-size:11px;color:var(--muted);margin:12px 0 5px}
+.gatebox select,.gatebox input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px;color:var(--ink);font-size:13.5px}
+.gatebox .disc{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5bf63;font-size:11px;border-radius:9px;padding:9px 11px;margin-bottom:6px;line-height:1.5}
+.gatefoot{font-size:10.5px;color:var(--faint);text-align:center;margin-top:14px}
 </style>
 </head>
 <body>
+<!-- SIGN-IN GATE -->
+<div id="gate">
+  <div class="gatebox">
+    <div class="gb">
+      <div class="logo">ج</div>
+      <div><b style="font-size:15px">Jusoor</b><small style="display:block;color:var(--muted);font-size:11px">× GSK · Shingrix Programme</small></div>
+    </div>
+    <h2>Sign in to the engagement platform</h2>
+    <div class="gsub">Adult immunisation · Riyadh &amp; Western Region PHC clusters</div>
+    <div class="disc">🔒 Demo environment — 100% synthetic data. Do not enter real patient identifiers.</div>
+    <label>Role</label>
+    <select id="gRole">
+      <option>Vaccination Coordinator</option>
+      <option>Physician</option>
+      <option>Immunisation Nurse</option>
+      <option>Programme Manager</option>
+    </select>
+    <label>Name</label>
+    <input id="gName" placeholder="Your name" />
+    <label>Password</label>
+    <input type="password" placeholder="••••••••" />
+    <button class="btn btn-primary" style="width:100%;margin-top:18px;padding:11px" onclick="signIn()">Sign in</button>
+    <div class="gatefoot">Authorised access only · Jusoor Care Platform</div>
+  </div>
+</div>
 <div class="app">
 <!-- SIDEBAR -->
 <aside class="side">
@@ -173,6 +225,7 @@ textarea.msgbox{width:100%;min-height:120px;background:var(--whatsbg);border:1px
     <button data-s="registry"><span class="ic">📋</span>Vaccination Registry</button>
     <button data-s="actions"><span class="ic">☀️</span>Today's Actions</button>
     <button data-s="segments"><span class="ic">👥</span>Patient Segments</button>
+    <button data-s="calc"><span class="ic">🧮</span>Risk Calculator</button>
   </div>
   <div class="navlbl">AI Engagement</div>
   <div class="nav">
@@ -180,8 +233,9 @@ textarea.msgbox{width:100%;min-height:120px;background:var(--whatsbg);border:1px
     <button data-s="messaging"><span class="ic">💬</span>Messaging Centre</button>
     <button data-s="compose"><span class="ic">✍️</span>Compose Campaign</button>
   </div>
-  <div class="navlbl">Evidence</div>
+  <div class="navlbl">Intelligence</div>
   <div class="nav">
+    <button data-s="barriers"><span class="ic">🚧</span>Barrier Analytics</button>
     <button data-s="rwe"><span class="ic">📈</span>RWE Pipeline</button>
   </div>
   <div class="sidefoot">
@@ -463,6 +517,72 @@ textarea.msgbox{width:100%;min-height:120px;background:var(--whatsbg);border:1px
   </div>
 </section>
 
+<!-- ================= RISK CALCULATOR ================= -->
+<section class="sec" id="calc">
+  <div class="composegrid">
+    <div class="card">
+      <h3>🧮 Shingles Risk &amp; Eligibility Calculator</h3>
+      <div class="csub">For coordinators and PHC staff — enter a patient's details for instant eligibility, a personalised risk band, the correct dose schedule, and a ready-to-send Arabic message. No identifiers needed.</div>
+      <div style="font-size:12px;color:var(--muted);margin:6px 0 6px">Age</div>
+      <input id="cAge" type="number" min="18" max="110" placeholder="e.g. 62" style="width:140px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--ink);font-size:14px" />
+      <div style="font-size:12px;color:var(--muted);margin:16px 0 6px">Risk factors (tick all that apply)</div>
+      <div id="cFlags" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label class="chk"><input type="checkbox" data-imm="0" value="diabetes"> Diabetes</label>
+        <label class="chk"><input type="checkbox" data-imm="1" value="immuno"> Immunocompromised condition</label>
+        <label class="chk"><input type="checkbox" data-imm="1" value="meds"> On immunosuppressive medication</label>
+        <label class="chk"><input type="checkbox" data-imm="0" value="lung"> Chronic lung disease (COPD/asthma)</label>
+        <label class="chk"><input type="checkbox" data-imm="0" value="ckd"> Chronic kidney disease</label>
+        <label class="chk"><input type="checkbox" data-imm="0" value="cardio"> Heart disease</label>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="runCalc()">Calculate eligibility</button>
+      <div id="calcOut" style="margin-top:18px"></div>
+    </div>
+    <div class="botside">
+      <div class="card">
+        <h3>Auto-generated patient message</h3>
+        <div class="csub">Tailored to the result — copy into WhatsApp/SMS</div>
+        <div class="wapreview"><div class="msg bot" id="calcMsg" style="max-width:100%">— أدخل بيانات المريض واضغط احتساب —<span class="tm">now</span></div></div>
+        <button class="btn btn-ghost" style="margin-top:10px" onclick="copyCalcMsg()">📋 Copy message</button>
+      </div>
+      <div class="card">
+        <h3>How risk is estimated</h3>
+        <div class="csub" style="line-height:1.6">About 1 in 3 adults develop shingles in their lifetime, and risk climbs steeply after age 50 and is markedly higher with a weakened immune system. Bands below are illustrative for triage and patient education — not a diagnosis.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BARRIER ANALYTICS ================= -->
+<section class="sec" id="barriers">
+  <div class="grid two" style="margin-bottom:16px">
+    <div class="card">
+      <h3>Why patients decline or delay</h3>
+      <div class="csub">Captured by the bot &amp; coordinators · mapped to the WHO 5C model</div>
+      <canvas id="barrierChart" height="170"></canvas>
+    </div>
+    <div class="card">
+      <h3>AI counter-message by barrier</h3>
+      <div class="csub">The recommended Arabic response the engine serves automatically</div>
+      <div class="bcard"><b>😟 Safety / side-effect fear</b><div class="bsub">Confidence · 31%</div><div class="bmsg">"اللقاح آمن ومعتمد — أعراض بسيطة ليوم أو يومين فقط وتزول وحدها."</div></div>
+      <div class="bcard"><b>🤷 "I'm healthy, I don't need it"</b><div class="bsub">Complacency · 24%</div><div class="bmsg">Serve personal risk number + PHN testimonial.</div></div>
+      <div class="bcard"><b>💰 Cost / coverage unclear</b><div class="bsub">Calculation · 18%</div><div class="bmsg">Run coverage checker before booking; reassure on cost.</div></div>
+      <div class="bcard"><b>📍 Access / distance / time</b><div class="bsub">Convenience · 15%</div><div class="bmsg">Offer nearest PHC + pharmacy/workplace slot.</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Dominant barrier by PHC cluster</h3>
+    <div class="csub">Lets you tailor each centre's campaign instead of one-size-fits-all</div>
+    <table>
+      <tr><th>PHC centre</th><th>Top barrier</th><th>2nd barrier</th><th>Decline rate</th><th>Recommended fix</th></tr>
+      <tr><td>Al Olaya, Riyadh</td><td><span class="badge b-red">Safety fear</span></td><td>Complacency</td><td>12%</td><td>Doctor-endorsed safety message</td></tr>
+      <tr><td>Al Naseem, Riyadh</td><td><span class="badge b-amber">Complacency</span></td><td>Cost</td><td>16%</td><td>Risk calculator + testimonials</td></tr>
+      <tr><td>Al Rawdah, Jeddah</td><td><span class="badge b-blue">Cost unclear</span></td><td>Access</td><td>19%</td><td>Coverage checker upfront</td></tr>
+      <tr><td>Al Aziziyah, Makkah</td><td><span class="badge b-grey">Access</span></td><td>Safety fear</td><td>21%</td><td>Pharmacy + workplace channels</td></tr>
+    </table>
+    <div class="note">🧠 <b>Why this matters for GSK:</b> a broadcast campaign can't tell you <i>why</i> people say no. This view turns every decline into a reason code, so messaging, channel and provider effort are aimed at the actual barrier in each area — and gives Medical Affairs a real-world picture of Saudi hesitancy drivers.</div>
+  </div>
+</section>
+
   </div>
 </div>
 </div>
@@ -478,6 +598,8 @@ segments:['Patient Segments','Risk-profile cohorts powering AI targeting'],
 bot:['Arabic WhatsApp Bot','Conversational eligibility & follow-up assistant'],
 messaging:['Messaging Centre','Two-way patient conversations'],
 compose:['Compose Campaign','AI-generated Arabic broadcasts'],
+calc:['Shingles Risk Calculator','Personalised eligibility & risk in seconds'],
+barriers:['Barrier Analytics','Why patients decline — and how to respond'],
 rwe:['RWE Pipeline','Real-world evidence & pilot KPIs']};
 function go(s){
   document.querySelectorAll('.sec').forEach(x=>x.classList.remove('show'));
@@ -687,6 +809,76 @@ function queueMsg(){
   q.prepend(d);toast('Broadcast scheduled ✓');
 }
 pickSeg(0);
+
+/* ---------- Sign-in gate ---------- */
+function signIn(){
+  const g=document.getElementById('gate');
+  g.style.transition='opacity .4s';g.style.opacity='0';
+  setTimeout(()=>g.style.display='none',400);
+  const name=document.getElementById('gName').value.trim();
+  const role=document.getElementById('gRole').value;
+  if(name) document.getElementById('tsub').textContent='Signed in as '+name+' · '+role;
+}
+
+/* ---------- Risk Calculator ---------- */
+function runCalc(){
+  const age=parseInt(document.getElementById('cAge').value);
+  if(!age||age<1){toast('Enter an age');return;}
+  const flags=[...document.querySelectorAll('#cFlags input:checked')];
+  const immuno=flags.some(f=>f.dataset.imm==='1');
+  const hasDiab=flags.some(f=>f.value==='diabetes');
+  const nFactors=flags.length;
+  let eligible=false, basis='';
+  if(immuno){eligible=true;basis='Immunocompromised — eligible from age 18';}
+  else if(age>=50){eligible=true;basis='Age 50 or older';}
+  // risk scoring (illustrative)
+  let score = Math.max(0,(age-40))*1.4 + nFactors*9 + (immuno?28:0) + (hasDiab?8:0);
+  score=Math.min(98,Math.round(score));
+  let band='Low', col='#27c08a';
+  if(score>=70){band='Very high';col='#ef5b5b';}
+  else if(score>=50){band='High';col='#f5a623';}
+  else if(score>=30){band='Moderate';col='#3d8bff';}
+  const schedule = immuno ? 'Two doses, 1–2 months apart (shorter interval)' : 'Two doses, 2–6 months apart';
+  const out=document.getElementById('calcOut');
+  if(eligible){
+    out.innerHTML=`<div class="result elig">
+      <h4>✅ Eligible for Shingrix</h4>
+      <div class="line"><span>Basis</span><b>${basis}</b></div>
+      <div class="line"><span>Recommended schedule</span><b>${schedule}</b></div>
+      <div class="line"><span>Shingles risk band</span><b style="color:${col}">${band} (${score}/100)</b></div>
+      <div class="riskbar"><i style="width:${score}%;background:${col}"></i></div>
+      <div class="line" style="margin-top:8px"><span>Priority</span><b>${score>=70?'Call within 48h':score>=50?'Proactive outreach':'Standard reminder'}</b></div>
+    </div>`;
+  } else {
+    out.innerHTML=`<div class="result no">
+      <h4>Not eligible by current criteria</h4>
+      <div class="line"><span>Reason</span><b>Under 50 and not immunocompromised</b></div>
+      <div class="line"><span>Next step</span><b>Caregiver pathway — do they care for someone 50+ or immunocompromised?</b></div>
+    </div>`;
+  }
+  // patient message
+  let msg;
+  if(eligible){
+    const riskLine = immuno ? 'وبسبب ضعف المناعة لديك، الحماية مهمة جداً وسنوفر لك جدولاً أسرع.' :
+                     hasDiab ? 'وبسبب الإصابة بالسكري، خطر الحزام الناري لديك أعلى من غيرك.' :
+                     'خطر الإصابة يزداد مع التقدم في العمر، وجرعتان تحميانك بفعالية.';
+    msg=`مرحباً 👋 أنت مؤهل للقاح الحزام الناري (شينجريكس).\n${riskLine}\nالجدول الموصى به: ${immuno?'جرعتان بفارق شهر إلى شهرين':'جرعتان بفارق شهرين إلى ستة أشهر'}.\nاحجز الآن: 🔗 jusoor.health/shingrix`;
+  } else {
+    msg=`شكراً لك 🤍 اللقاح غير موصى به في عمرك حالياً دون وجود نقص مناعة.\nلكن هل ترعى أحد والديك أو شخصاً عمره 50 سنة فأكثر؟ يمكننا مساعدته في الحجز — شاركنا رقمه.`;
+  }
+  document.getElementById('calcMsg').innerHTML=msg.replace(/\n/g,'<br>')+'<span class="tm">'+tm()+'</span>';
+}
+function copyCalcMsg(){
+  const t=document.getElementById('calcMsg').innerText.replace(/\s*\d{1,2}:\d{2}\s*$/,'');
+  navigator.clipboard&&navigator.clipboard.writeText(t);toast('Message copied ✓');
+}
+
+/* ---------- Barrier chart ---------- */
+new Chart(document.getElementById('barrierChart'),{type:'bar',
+ data:{labels:['Safety fear','Complacency','Cost unclear','Access/time','Already had it','Ask doctor first','Dose-2 lapse'],
+ datasets:[{label:'% of declines',data:[31,24,18,15,12,9,7],
+ backgroundColor:['#ef5b5b','#f5a623','#3d8bff','#19b3a6','#9b6dff','#27c08a','#62748a']}]},
+ options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#23303c'}},y:{grid:{display:false}}}}});
 </script>
 </body>
 </html>
