@@ -219,7 +219,7 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;}
 <div id="login-ov" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#16294d,#1c3a6e);display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif">
   <div style="background:#fff;border-radius:16px;padding:30px 32px;width:370px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.35)">
     <div style="text-align:center;margin-bottom:6px">
-      <div style="display:inline-flex;align-items:center;gap:8px"><div style="height:34px;width:34px;border-radius:8px;background:linear-gradient(135deg,#378add,#5aaa1e);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px">ج</div><div style="text-align:left"><div style="font-size:21px;font-weight:800;color:#16294d;letter-spacing:.5px">Jusoor</div><div style="font-size:9px;color:#6b7790;letter-spacing:3px">× GSK · SHINGRIX</div></div></div>
+      <div style="display:inline-flex;align-items:center;gap:8px"><div style="height:34px;width:34px;border-radius:8px;background:linear-gradient(135deg,#378add,#5aaa1e);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 64 64" style="width:70%;height:70%" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 43h54" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M14 43V24M50 43V24" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M7 31C19 16 45 16 57 31" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><path d="M22 17l-3 26M42 17l3 26M32 15v28" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></svg></div><div style="text-align:left"><div style="font-size:21px;font-weight:800;color:#16294d;letter-spacing:.5px">Jusoor</div><div style="font-size:9px;color:#6b7790;letter-spacing:3px">× GSK · SHINGRIX</div></div></div>
     </div>
     <div style="font-size:12px;color:#6b7790;text-align:center;margin:14px 0 16px">Sign in to the immunisation platform</div>
     <div style="background:#fff7e6;border:1px solid #f3d699;color:#9a6b00;font-size:10px;border-radius:8px;padding:8px 10px;margin-bottom:14px;line-height:1.5">🔒 Demo environment — 100% synthetic data. Do not enter real patient identifiers.</div>
@@ -237,14 +237,14 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;}
 <!-- SIDEBAR -->
 <aside class="sb">
   <div class="sb-logo">
-    <div class="sb-mark">ج</div>
+    <div class="sb-mark"><svg viewBox="0 0 64 64" style="width:66%;height:66%" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 43h54" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M14 43V24M50 43V24" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M7 31C19 16 45 16 57 31" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><path d="M22 17l-3 26M42 17l3 26M32 15v28" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></svg></div>
     <div class="sb-brand"><div class="sb-name">Jusoor</div><div class="sb-sub">GSK Shingrix Programme</div></div>
   </div>
   <div class="sb-role-tag"><div class="sb-role-dot"></div><div class="sb-role-name" id="sb-role">Vaccination Coordinator</div></div>
   <div class="sb-scroll">
     <div class="sb-sec">Patient Care</div>
     <div class="si on" data-v="overview"><span class="si-ic">📊</span>Overview</div>
-    <div class="si" data-v="worklist"><span class="si-ic">📋</span>Vaccination Worklist<span class="si-badge badge-r">21</span></div>
+    <div class="si" data-v="worklist"><span class="si-ic">📋</span>Vaccination Worklist<span class="si-badge badge-r" id="wlBadge">0</span></div>
     <div class="si" data-v="registry"><span class="si-ic">👥</span>Patient Registry</div>
     <div class="sb-sec">Clinical Tools</div>
     <div class="si" data-v="calc"><span class="si-ic">🧮</span>Eligibility &amp; Risk</div>
@@ -318,8 +318,8 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;}
 <!-- ===== REGISTRY ===== -->
 <div class="view" id="v-registry">
   <div class="card cp">
-    <div class="ch"><div><div class="ct">Patient Registry</div><div class="cs-sub">Opt-in cohort · self-reported via WhatsApp · click a row for the full record</div></div></div>
-    <div class="tbl-w"><table class="tbl"><thead><tr><th>Patient</th><th>Age</th><th>Risk profile</th><th>PHC centre</th><th>Dose status</th><th>Next action</th></tr></thead><tbody id="regBody"></tbody></table></div>
+    <div class="ch"><div><div class="ct">Patient Registry · <span id="regCount">50</span> enrolled</div><div class="cs-sub">Opt-in cohort · AI risk scored locally · click a row for the full record</div></div><button class="btn btn-o btn-xs" onclick="toast('Exported ✓','50 de-identified records (CSV)')">⬇ Export for GSK</button></div>
+    <div class="tbl-w"><table class="tbl"><thead><tr><th>Patient</th><th>Age</th><th>Risk profile</th><th>AI risk</th><th>PHC · Physician</th><th>Dose status</th></tr></thead><tbody id="regBody"></tbody></table></div>
   </div>
 </div>
 
@@ -477,6 +477,14 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;}
       </tbody></table></div>
     </div>
   </div>
+  <div class="card cp" style="margin-bottom:14px">
+    <div class="ch"><div><div class="ct">AI engine architecture</div><div class="cs-sub">Privacy-first by default · scalable when you need it</div></div><span class="conn-badge cb-g" id="aiModeBadge">Local rules · active</span></div>
+    <div class="g2">
+      <div class="intg-card" style="border-top:3px solid var(--gr)"><div class="conn-name">🖥️ On-platform rule engine <span class="chip ch-g" style="margin-left:4px">default</span></div><div class="conn-desc" style="margin-top:6px;line-height:1.6">Eligibility and risk scoring run entirely in the browser using transparent, auditable rules — the same engine across the registry, worklist and calculator. <b>No patient data leaves the device.</b> Works offline, instant, zero per-query cost.</div></div>
+      <div class="intg-card" style="border-top:3px solid var(--am)"><div class="conn-name">☁️ External AI proxy <span class="chip ch-a" style="margin-left:4px">optional</span></div><div class="conn-desc" style="margin-top:6px;line-height:1.6">For heavy generative work (free-text message generation, nuanced hesitancy analysis) flip <code>AI_ENGINE.mode='proxy'</code> to a secured Cloudflare Worker endpoint. Only <b>de-identified features</b> are sent; the local engine stays the fallback.</div></div>
+    </div>
+    <div class="note" style="margin-top:12px">Mirrors the Jusoor diabetic platform's <code>ai-proxy-worker.js</code> pattern — local-first, with a clean upgrade path to server-side AI without touching any external service until you choose to.</div>
+  </div>
   <div class="g3">
     <div class="phase-card phase-active"><div class="phase-n">Phase 1 · live</div><div class="phase-t">Opt-in WhatsApp engine</div><div class="phase-d">Self-reported, consented data. No MOH access required. Two-dose completion + caregiver capture.</div><div class="phase-s">● Active now</div></div>
     <div class="phase-card"><div class="phase-n">Phase 2</div><div class="phase-t">PHC handoff + RWE</div><div class="phase-d">Coordinator cockpit, Sehhaty booking, de-identified dose-interval extracts for co-publication.</div></div>
@@ -527,20 +535,108 @@ function show(v){
 document.querySelectorAll('.si').forEach(s=>s.onclick=()=>show(s.dataset.v));
 function toast(m,s){const t=document.getElementById('toast');document.getElementById('t-main').textContent=m;document.getElementById('t-sub').textContent=s||'';t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);}
 
-/* ---------- Patients ---------- */
-const patients=[
- {id:0,n:'محمد العتيبي',en:'Mohammed Al-Otaibi',age:67,risk:'Diabetic 50+',rk:'SD',ab:'avSD',phc:'Al Olaya, Riyadh',st:'Dose 2 overdue',stk:'rH',sb:'rH',f:'d2over',pri:'wU',d1:'14 Apr 2026',d2:'—',risklvl:'High',act:'Call — recovery',last:'8 days ago'},
- {id:1,n:'فاطمة الزهراني',en:'Fatima Al-Zahrani',age:61,risk:'General 50+',rk:'SG',ab:'avSG',phc:'Al Rawdah, Jeddah',st:'Dose 2 window',stk:'rM',sb:'rM',f:'d2win',pri:'wM',d1:'2 May 2026',d2:'Due now',risklvl:'Moderate',act:'Send Dose-2 reminder',last:'2 days ago'},
- {id:2,n:'عبدالله القحطاني',en:'Abdullah Al-Qahtani',age:34,risk:'Immunocompromised',rk:'SI',ab:'avSI',phc:'Al Naseem, Riyadh',st:'Complete',stk:'rL',sb:'rL',f:'done',pri:'wL',d1:'1 Mar 2026',d2:'3 Apr 2026',risklvl:'High',act:'None — protected',last:'3 weeks ago'},
- {id:3,n:'نورة الشمري',en:'Noura Al-Shammari',age:58,risk:'Diabetic 50+',rk:'SD',ab:'avSD',phc:'Al Aziziyah, Makkah',st:'Dose 1 only',stk:'rM',sb:'rM',f:'d1',pri:'wM',d1:'20 May 2026',d2:'Schedule',risklvl:'High',act:'Schedule Dose 2',last:'5 days ago'},
- {id:4,n:'سعد الدوسري',en:'Saad Al-Dosari',age:72,risk:'General 50+',rk:'SG',ab:'avSG',phc:'Al Olaya, Riyadh',st:'No dose',stk:'rM',sb:'rM',f:'none',pri:'wM',d1:'—',d2:'—',risklvl:'Moderate',act:'Send registration link',last:'1 day ago'},
- {id:5,n:'هند المالكي',en:'Hind Al-Malki',age:45,risk:'Immunocompromised',rk:'SI',ab:'avSI',phc:'Al Rawdah, Jeddah',st:'Dose 2 overdue',stk:'rH',sb:'rH',f:'d2over',pri:'wU',d1:'10 Mar 2026',d2:'—',risklvl:'High',act:'Call — short interval',last:'11 days ago'},
- {id:6,n:'أم عبدالله (راعية)',en:'Umm Abdullah (caregiver)',age:41,risk:'Caregiver',rk:'SG',ab:'avSG',phc:'Al Naseem, Riyadh',st:'Caregiver lead',stk:'rM',sb:'rM',f:'caregiver',pri:'wM',d1:'n/a',d2:'n/a',risklvl:'—',act:'Call — arrange parent (70)',last:'Yesterday'},
- {id:7,n:'يوسف الحربي',en:'Yousef Al-Harbi',age:69,risk:'Diabetic 50+',rk:'SD',ab:'avSD',phc:'Al Rawdah, Jeddah',st:'Dose 2 window',stk:'rM',sb:'rM',f:'d2win',pri:'wM',d1:'25 Apr 2026',d2:'Due now',risklvl:'High',act:'Send Dose-2 reminder',last:'6 days ago'},
- {id:8,n:'منى السبيعي',en:'Mona Al-Subaie',age:51,risk:'General 50+',rk:'SG',ab:'avSG',phc:'Al Olaya, Riyadh',st:'No dose',stk:'rM',sb:'rM',f:'none',pri:'wM',d1:'—',d2:'—',risklvl:'Moderate',act:'Send registration link',last:'3 days ago'},
- {id:9,n:'إبراهيم الرشيد',en:'Ibrahim Al-Rashid',age:28,risk:'Immunocompromised',rk:'SI',ab:'avSI',phc:'Al Naseem, Riyadh',st:'Dose 1 only',stk:'rM',sb:'rM',f:'d1',pri:'wM',d1:'18 May 2026',d2:'Schedule (short)',risklvl:'High',act:'Short-interval Dose 2',last:'2 days ago'},
+/* ================= LOCAL AI RULE ENGINE =================
+   Deterministic, explainable, runs entirely in the browser.
+   No patient data leaves the device. For heavy generative work,
+   set AI_ENGINE.mode='proxy' + endpoint (see RWE → AI Engine). */
+const RiskEngine={
+  rules:[
+    {id:'age',   label:'Age-related risk',          w:p=>Math.min(45,Math.max(0,(p.age-40)*1.3))},
+    {id:'immuno',label:'Immunocompromised',         w:p=>p.cond.includes('immuno')?30:0},
+    {id:'meds',  label:'Immunosuppressive therapy', w:p=>p.cond.includes('meds')?15:0},
+    {id:'diab',  label:'Diabetes',                  w:p=>p.cond.includes('diabetes')?12:0},
+    {id:'ckd',   label:'Chronic kidney disease',    w:p=>p.cond.includes('ckd')?9:0},
+    {id:'lung',  label:'Chronic lung disease',      w:p=>p.cond.includes('lung')?7:0},
+    {id:'cardio',label:'Heart disease',             w:p=>p.cond.includes('cardio')?7:0},
+  ],
+  assess(p){
+    let score=0,drivers=[];
+    this.rules.forEach(r=>{const v=r.w(p);if(v>0){score+=v;drivers.push({label:r.label,v:Math.round(v)});}});
+    score=Math.min(98,Math.round(score));
+    const tier=score>=70?'Very High':score>=50?'High':score>=30?'Moderate':'Low';
+    const immuno=p.cond.includes('immuno')||p.cond.includes('meds');
+    return {score,tier,drivers,schedule:immuno?'Short (1–2 mo)':'Standard (2–6 mo)',immuno};
+  }
+};
+/* Eligibility rules — Saudi guidance: 50+ OR 18+ if immunocompromised */
+function eligibility(p){
+  if(p.caregiver) return {ok:false,basis:'Caregiver of an eligible relative'};
+  if(p.cond.includes('immuno')||p.cond.includes('meds')) return {ok:true,basis:'Immunocompromised — eligible 18+'};
+  if(p.age>=50) return {ok:true,basis:'Age 50 or older'};
+  return {ok:false,basis:'Under 50, not immunocompromised'};
+}
+/* Async wrapper — local by default, optional external AI proxy for heavy processing */
+const AI_ENGINE={
+  mode:'local',   // 'local' = in-browser rules · 'proxy' = external API
+  endpoint:'',    // e.g. https://jusoor-ai.<account>.workers.dev  (Cloudflare Worker)
+  async assess(p){
+    if(this.mode==='proxy'&&this.endpoint){
+      try{const r=await fetch(this.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({age:p.age,cond:p.cond})}); // de-identified features only
+        if(r.ok) return await r.json();}catch(e){/* fall back to local */}
+    }
+    return RiskEngine.assess(p);
+  }
+};
+
+/* ================= 50 ENROLLED PATIENTS (synthetic, seeded) ================= */
+const PHCs=[
+ {n:'Al Olaya, Riyadh',doc:'Dr. Khalid Al-Ghamdi'},
+ {n:'Al Naseem, Riyadh',doc:'Dr. Mona Al-Subaie'},
+ {n:'Al Rawdah, Jeddah',doc:'Dr. Faisal Al-Harbi'},
+ {n:'Al Aziziyah, Makkah',doc:'Dr. Aisha Al-Zahrani'},
+ {n:'Al Shati, Dammam',doc:'Dr. Omar Al-Qahtani'},
 ];
+const FN_M=[['محمد','Mohammed'],['عبدالله','Abdullah'],['خالد','Khalid'],['سعد','Saad'],['فهد','Fahad'],['ناصر','Nasser'],['إبراهيم','Ibrahim'],['عمر','Omar'],['يوسف','Yousef'],['سلطان','Sultan'],['ماجد','Majed'],['طلال','Talal']];
+const FN_F=[['فاطمة','Fatima'],['نورة','Noura'],['ريم','Reem'],['هند','Hind'],['منى','Mona'],['لطيفة','Latifa'],['سارة','Sara'],['أمل','Amal'],['هيا','Haya'],['جواهر','Jawaher'],['شيخة','Shaikha'],['العنود','Aljawhara']];
+const LN=[['العتيبي','Al-Otaibi'],['القحطاني','Al-Qahtani'],['الغامدي','Al-Ghamdi'],['الزهراني','Al-Zahrani'],['الحربي','Al-Harbi'],['الدوسري','Al-Dosari'],['الشمري','Al-Shammari'],['المالكي','Al-Malki'],['السبيعي','Al-Subaie'],['الرشيد','Al-Rashid'],['العنزي','Al-Anzi'],['المطيري','Al-Mutairi'],['الشهري','Al-Shahri'],['البقمي','Al-Buqami']];
+const DATES=['2 Mar 2026','18 Mar 2026','5 Apr 2026','22 Apr 2026','9 May 2026','24 May 2026','3 Jun 2026','11 Jun 2026'];
+const LASTS=['Today','Yesterday','2 days ago','4 days ago','6 days ago','8 days ago','11 days ago','2 weeks ago','3 weeks ago'];
+let _seed=20260621;function rnd(){_seed=(_seed*9301+49297)%233280;return _seed/233280;}
+function pick(a){return a[Math.floor(rnd()*a.length)];}
+function chance(p){return rnd()<p;}
+const STAT_POOL=['done','done','done','d1','d1','d2win','d2win','d2over','d2over','none','none','none'];
+function mapStatus(f,immuno,score){
+  if(f==='done')   return {st:'Complete',sb:'rL',pri:'wL',act:'None — protected',d1:pick(DATES),d2:pick(DATES)};
+  if(f==='d1')     return {st:'Dose 1 only',sb:'rM',pri:'wM',act:'Schedule Dose 2',d1:pick(DATES),d2:immuno?'Schedule (short)':'Schedule'};
+  if(f==='d2win')  return {st:'Dose 2 window',sb:'rM',pri:'wM',act:'Send Dose-2 reminder',d1:pick(DATES),d2:'Due now'};
+  if(f==='d2over') return {st:'Dose 2 overdue',sb:'rH',pri:'wU',act:immuno?'Call — short interval':'Call — recovery',d1:pick(DATES),d2:'—'};
+  if(f==='caregiver') return {st:'Caregiver lead',sb:'rM',pri:'wM',act:'Call — arrange relative',d1:'n/a',d2:'n/a'};
+  // none
+  return {st:'No dose',sb:score>=70?'rH':'rM',pri:score>=70?'wU':'wM',act:score>=70?'Call — high-risk, no dose':'Send registration link',d1:'—',d2:'—'};
+}
+const patients=[];const usedNames=new Set();
+for(let i=0;i<50;i++){
+  const sex=chance(.5)?'M':'F';
+  const fn=pick(sex==='M'?FN_M:FN_F),ln=pick(LN);
+  let key=fn[1]+ln[1];let guard=0;while(usedNames.has(key)&&guard++<20){const f2=pick(sex==='M'?FN_M:FN_F);key=f2[1]+ln[1];}
+  usedNames.add(key);
+  const en=key.replace(ln[1],' '+ln[1]),arName=fn[0]+' '+ln[0];
+  // cohort: 70% age-eligible, 18% immuno under-50, 12% caregiver
+  const roll=rnd();let age,cond=[],caregiver=false;
+  if(roll<0.12){caregiver=true;age=30+Math.floor(rnd()*26);}
+  else if(roll<0.30){age=19+Math.floor(rnd()*30);cond.push(chance(.5)?'immuno':'meds');if(chance(.3))cond.push('ckd');}
+  else{age=50+Math.floor(rnd()*36);
+    if(chance(.38))cond.push('diabetes');
+    if(chance(.18))cond.push('cardio');
+    if(chance(.12))cond.push('lung');
+    if(chance(.10))cond.push('ckd');
+    if(chance(.10))cond.push(chance(.5)?'immuno':'meds');
+  }
+  const phc=pick(PHCs);
+  const immuno=cond.includes('immuno')||cond.includes('meds');
+  const a=RiskEngine.assess({age,cond});
+  const f=caregiver?'caregiver':pick(STAT_POOL);
+  const sm=mapStatus(f,immuno,a.score);
+  const rk=immuno?'SI':(cond.includes('diabetes')&&age>=50?'SD':'SG');
+  const profile=caregiver?'Caregiver':immuno?'Immunocompromised':(cond.includes('diabetes')&&age>=50?'Diabetic 50+':'General 50+');
+  patients.push({id:i,n:arName,en,sex,age,cond,caregiver,risk:profile,rk,ab:'av'+rk,
+    phc:phc.n,doc:phc.doc,st:sm.st,sb:sm.sb,f,pri:sm.pri,act:sm.act,d1:sm.d1,d2:sm.d2,
+    last:pick(LASTS),score:a.score,risklvl:caregiver?'—':a.tier,drivers:a.drivers,
+    schedule:a.schedule,elig:eligibility({age,cond,caregiver})});
+}
 function dpill(p){return `<span class="risk-badge ${p.sb}">${p.st}</span>`;}
+function scorePill(p){if(p.caregiver)return '<span class="chip ch-p">Caregiver</span>';const c=p.risklvl==='Very High'||p.risklvl==='High'?'rH':p.risklvl==='Moderate'?'rM':'rL';return `<span class="risk-badge ${c}">${p.score} · ${p.risklvl}</span>`;}
 function wlActions(p){
   if(p.f==='d2over')return '<button class="btn btn-r btn-xs" onclick="event.stopPropagation();toast(\'Calling '+p.en+'…\')">Call now</button>';
   if(p.f==='d2win')return '<button class="btn btn-b btn-xs" onclick="event.stopPropagation();toast(\'Dose-2 reminder sent ✓\')">Remind</button>';
@@ -551,14 +647,16 @@ function wlActions(p){
 }
 function wlCard(p){return `<div class="wl-card ${p.pri}" onclick="openPat(${p.id})">
   <div class="wl-dot ${p.pri==='wU'?'dH':p.pri==='wM'?'dM':'dL'}"></div>
-  <div class="wl-main"><div class="wl-top"><span class="wl-name ar">${p.n}</span><span class="type-badge ${p.rk}">${p.risk}</span>${dpill(p)}</div>
-  <div class="wl-desc">${p.en} · ${p.age}y · ${p.phc} · ${p.act}</div></div>
+  <div class="wl-main"><div class="wl-top"><span class="wl-name ar">${p.n}</span><span class="type-badge ${p.rk}">${p.risk}</span>${dpill(p)}${scorePill(p)}</div>
+  <div class="wl-desc">${p.en} · ${p.age}y · ${p.phc} · ${p.doc} · ${p.act}</div></div>
   <div class="wl-actions">${wlActions(p)}</div></div>`;}
 function renderWL(f='all'){document.getElementById('wlList').innerHTML=patients.filter(p=>f==='all'||p.f===f).map(wlCard).join('')||'<div class="note">No patients in this view.</div>';}
 document.querySelectorAll('#wlFilters .filt').forEach(b=>b.onclick=()=>{document.querySelectorAll('#wlFilters .filt').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderWL(b.dataset.f);});
 renderWL();
-document.getElementById('ovWorklist').innerHTML=patients.filter(p=>p.pri==='wU'||p.f==='caregiver').slice(0,4).map(wlCard).join('');
-document.getElementById('regBody').innerHTML=patients.map(p=>`<tr onclick="openPat(${p.id})"><td class="ar">${p.n}</td><td>${p.age}</td><td><span class="type-badge ${p.rk}">${p.risk}</span></td><td>${p.phc}</td><td>${dpill(p)}</td><td>${p.act}</td></tr>`).join('');
+document.getElementById('wlBadge').textContent=patients.filter(p=>p.pri==='wU').length;
+document.getElementById('ovWorklist').innerHTML=patients.filter(p=>p.pri==='wU').slice(0,4).map(wlCard).join('')||patients.slice(0,4).map(wlCard).join('');
+document.getElementById('regBody').innerHTML=patients.map(p=>`<tr onclick="openPat(${p.id})"><td class="ar">${p.n}</td><td>${p.age}</td><td><span class="type-badge ${p.rk}">${p.risk}</span></td><td>${scorePill(p)}</td><td style="font-size:11px">${p.phc}<div style="color:var(--mu);font-size:10px">${p.doc}</div></td><td>${dpill(p)}</td></tr>`).join('');
+document.getElementById('regCount').textContent=patients.length;
 
 /* ---------- Patient modal ---------- */
 function openPat(id){
@@ -576,13 +674,13 @@ function openPat(id){
   document.getElementById('pmBody').innerHTML=`
   <div class="ph"><div class="ph-top">
     <div class="ph-av ${p.ab}">${p.en.replace(/\(.*\)/,'').trim().split(' ').map(x=>x[0]).join('').slice(0,2)}</div>
-    <div style="flex:1"><div class="ph-name ar">${p.n}</div><div class="ph-meta">${p.en} · ${p.age} years · <span class="type-badge ${p.rk}">${p.risk}</span> · ${p.phc}</div></div>
+    <div style="flex:1"><div class="ph-name ar">${p.n}</div><div class="ph-meta">${p.en} · ${p.age} years · <span class="type-badge ${p.rk}">${p.risk}</span> · ${p.phc}</div><div class="ph-meta">👨‍⚕️ ${p.doc} · <span class="chip ch-g">Covered · national programme</span></div></div>
     <div>${wlActions(p)}</div></div>
     <div class="ph-vits">
       <div class="vit"><div class="vit-v">${p.age}</div><div class="vit-l">Age</div></div>
       <div class="vit"><div class="vit-v" style="font-size:13px">${p.d1}</div><div class="vit-l">Dose 1</div></div>
       <div class="vit"><div class="vit-v" style="font-size:13px">${p.d2}</div><div class="vit-l">Dose 2</div></div>
-      <div class="vit"><div class="vit-v"><span class="risk-badge ${p.risklvl==='High'?'rH':p.risklvl==='Moderate'?'rM':'rL'}" style="font-size:11px">${p.risklvl}</span></div><div class="vit-l">Risk</div></div>
+      <div class="vit"><div class="vit-v" style="font-size:18px">${p.caregiver?'—':p.score}</div><div class="vit-l">AI risk</div><div class="vit-t">${p.risklvl}</div></div>
       <div class="vit"><div class="vit-v" style="font-size:13px">${p.last}</div><div class="vit-l">Last contact</div></div>
     </div></div>
   <div class="g2">
@@ -591,7 +689,9 @@ function openPat(id){
       <div class="sc-row"><div class="sc-d ${p.st==='Complete'?'s-ok':p.f==='d2over'?'s-ov':'s-due'}"></div><span class="sc-lbl">Dose 2</span><span class="sc-meta">${p.d2}</span></div>
       <div class="sc-row"><div class="sc-d ${p.rk==='SI'?'s-due':'s-ok'}"></div><span class="sc-lbl">Schedule type</span><span class="sc-meta">${p.rk==='SI'?'Short (1–2 mo)':'Standard (2–6 mo)'}</span></div>
     </div>
-    <div class="ai-panel"><div class="ai-hd"><div class="ai-ico">🤖</div><div><div class="ai-title">AI recommendation</div><div class="ai-sub">Next best action</div></div></div>${flags}</div>
+    <div class="ai-panel"><div class="ai-hd"><div class="ai-ico">🤖</div><div><div class="ai-title">AI rule engine</div><div class="ai-sub">Local · explainable</div></div></div>${flags}
+      <div class="ai-blk"><div class="ai-blk-t">Eligibility · ${p.elig.ok?'Eligible':'Not eligible'}</div><div style="font-size:11px;color:rgba(255,255,255,.8)">${p.elig.basis}${p.elig.ok?' · '+p.schedule+' schedule':''}</div></div>
+      <div class="ai-blk"><div class="ai-blk-t">Risk breakdown · ${p.caregiver?'n/a':p.score+'/100'}</div>${p.drivers.length?p.drivers.map(d=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.85);padding:2px 0"><span>${d.label}</span><span>+${d.v}</span></div>`).join(''):'<div style="font-size:11px;color:rgba(255,255,255,.6)">No risk factors recorded</div>'}<div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:6px">Computed locally — no data left this device</div></div></div>
   </div>
   <div class="ar-card" style="margin-top:14px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.45);margin-bottom:8px">Suggested WhatsApp message</div><div class="ar-text">${arMsg}</div><button class="btn btn-b btn-sm" onclick="toast('Message sent ✓','via WhatsApp')">Send to patient</button></div>`;
   document.getElementById('patModal').classList.add('open');
@@ -609,31 +709,28 @@ new Chart(document.getElementById('barrierChart'),{type:'bar',data:{labels:['Saf
 function runCalc(){
   const age=parseInt(document.getElementById('cAge').value);
   if(!age||age<1){toast('Enter an age');return;}
-  const flags=[...document.querySelectorAll('#cFlags input:checked')];
-  const immuno=flags.some(f=>f.dataset.imm==='1');const hasDiab=flags.some(f=>f.value==='diabetes');
-  let eligible=false,basis='';
-  if(immuno){eligible=true;basis='Immunocompromised — eligible from age 18';}
-  else if(age>=50){eligible=true;basis='Age 50 or older';}
-  let score=Math.min(98,Math.round(Math.max(0,(age-40))*1.4+flags.length*9+(immuno?28:0)+(hasDiab?8:0)));
-  let band='Low',cls='rL';if(score>=70){band='Very high';cls='rH';}else if(score>=50){band='High';cls='rH';}else if(score>=30){band='Moderate';cls='rM';}
-  const sched=immuno?'Two doses, 1–2 months apart':'Two doses, 2–6 months apart';
+  const cond=[...document.querySelectorAll('#cFlags input:checked')].map(f=>f.value);
+  const p={age,cond,caregiver:false};
+  const el=eligibility(p),a=RiskEngine.assess(p);
+  const cls=(a.tier==='Very High'||a.tier==='High')?'rH':a.tier==='Moderate'?'rM':'rL';
   const out=document.getElementById('calcOut');
-  if(eligible){
+  if(el.ok){
     out.innerHTML=`<div class="card cp" style="border-top:3px solid var(--gr)"><div style="font-size:14px;font-weight:800;color:var(--grd);margin-bottom:8px">✅ Eligible for Shingrix</div>
-    <div class="sc-row"><span class="sc-lbl">Basis</span><span class="sc-meta">${basis}</span></div>
-    <div class="sc-row"><span class="sc-lbl">Schedule</span><span class="sc-meta">${sched}</span></div>
-    <div class="sc-row"><span class="sc-lbl">Risk band</span><span class="sc-meta"><span class="risk-badge ${cls}">${band} · ${score}/100</span></span></div>
-    <div class="sc-row"><span class="sc-lbl">Priority</span><span class="sc-meta">${score>=70?'Call within 48h':score>=50?'Proactive outreach':'Standard reminder'}</span></div></div>`;
+    <div class="sc-row"><span class="sc-lbl">Basis</span><span class="sc-meta">${el.basis}</span></div>
+    <div class="sc-row"><span class="sc-lbl">Schedule</span><span class="sc-meta">${a.immuno?'Two doses, 1–2 months apart':'Two doses, 2–6 months apart'}</span></div>
+    <div class="sc-row"><span class="sc-lbl">AI risk</span><span class="sc-meta"><span class="risk-badge ${cls}">${a.tier} · ${a.score}/100</span></span></div>
+    <div class="sc-row"><span class="sc-lbl">Priority</span><span class="sc-meta">${a.score>=70?'Call within 48h':a.score>=50?'Proactive outreach':'Standard reminder'}</span></div>
+    <div class="sc-row"><span class="sc-lbl">Coverage</span><span class="sc-meta"><span class="chip ch-g">Covered · national programme</span></span></div></div>`;
   }else{
     out.innerHTML=`<div class="card cp" style="border-top:3px solid var(--su)"><div style="font-size:14px;font-weight:800;margin-bottom:8px">Not eligible by current criteria</div>
-    <div class="sc-row"><span class="sc-lbl">Reason</span><span class="sc-meta">Under 50, not immunocompromised</span></div>
+    <div class="sc-row"><span class="sc-lbl">Reason</span><span class="sc-meta">${el.basis}</span></div>
     <div class="sc-row"><span class="sc-lbl">Next step</span><span class="sc-meta">Caregiver pathway</span></div></div>`;
   }
-  let msg;
-  if(eligible){const rl=immuno?'وبسبب ضعف المناعة، الحماية مهمة جداً وسنوفر جدولاً أسرع.':hasDiab?'وبسبب السكري، خطر الحزام الناري لديك أعلى.':'الخطر يزداد مع العمر، وجرعتان تحميانك.';
+  const immuno=a.immuno,hasDiab=cond.includes('diabetes');let msg;
+  if(el.ok){const rl=immuno?'وبسبب ضعف المناعة، الحماية مهمة جداً وسنوفر جدولاً أسرع.':hasDiab?'وبسبب السكري، خطر الحزام الناري لديك أعلى.':'الخطر يزداد مع العمر، وجرعتان تحميانك.';
     msg=`مرحباً 👋 أنت مؤهل للقاح الحزام الناري (شينجريكس).\n${rl}\nالجدول: ${immuno?'جرعتان بفارق شهر إلى شهرين':'جرعتان بفارق شهرين إلى ستة أشهر'}.\nاحجز: 🔗 jusoor.health/shingrix`;}
   else msg=`شكراً لك 🤍 اللقاح غير موصى به في عمرك دون نقص مناعة.\nهل ترعى شخصاً عمره 50+ أو لديه نقص مناعة؟ شاركنا رقمه وسنساعده.`;
-  document.getElementById('calcAI').innerHTML=`<div class="ai-blk"><div class="ai-blk-t">Patient message (Arabic)</div><div class="ar" style="font-size:13px;line-height:1.7">${msg.replace(/\n/g,'<br>')}</div></div><button class="btn btn-b btn-sm" onclick="navigator.clipboard&&navigator.clipboard.writeText(\`${msg}\`);toast('Message copied ✓')">📋 Copy message</button>`;
+  document.getElementById('calcAI').innerHTML=`<div class="ai-blk"><div class="ai-blk-t">Risk breakdown · ${a.score}/100 (local rules)</div>${a.drivers.length?a.drivers.map(d=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.85);padding:2px 0"><span>${d.label}</span><span>+${d.v}</span></div>`).join(''):'<div style="font-size:11px;color:rgba(255,255,255,.6)">No risk factors</div>'}</div><div class="ai-blk"><div class="ai-blk-t">Patient message (Arabic)</div><div class="ar" style="font-size:13px;line-height:1.7">${msg.replace(/\n/g,'<br>')}</div></div><button class="btn btn-b btn-sm" onclick="navigator.clipboard&&navigator.clipboard.writeText(\`${msg}\`);toast('Message copied ✓')">📋 Copy message</button>`;
 }
 
 /* ---------- Compose ---------- */
