@@ -410,6 +410,7 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
       <div class="sc"><b>Conversations started</b><span class="m">1,184</span></div><div class="sc"><b>Eligibility confirmed</b><span class="m">921</span></div><div class="sc"><b>Registration links sent</b><span class="m">734</span></div><div class="sc"><b>Caregiver numbers captured</b><span class="m">73</span></div><div class="sc"><b>Symptom reports triaged</b><span class="m">58</span></div></div>
       <div class="ai"><div class="ai-h"><div class="ai-ic">💬</div><div><div class="ai-t">Bot intelligence</div><div class="ai-s">What the engine handles</div></div></div><div class="flag fG2">Eligibility: 50+ for all · 18+ if immunocompromised</div><div class="flag fY2">Auto-offers shorter 1–2 month Dose 2 to immunocompromised</div><div class="flag fG2">Triages post-vaccine symptoms; escalates severe to nurse</div></div></div>
   </div>
+  <div class="card cp" style="margin-top:14px"><div class="ch"><div><div class="ct">Local knowledge base — what the bot can answer</div><div class="cs">Curated Shingrix Q&amp;A served on-device · 🔒 no patient data leaves Saudi Arabia · an external LLM can optionally be linked in Settings for open-ended questions</div></div></div><div id="botKB"></div></div>
 </div>
 
 <!-- COMPOSE -->
@@ -426,6 +427,7 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
 
 <!-- BARRIERS -->
 <div class="view" id="v-barriers">
+  <div class="card cp" style="margin-bottom:14px"><div class="ch"><div><div class="ct">Collected barriers — live</div><div class="cs">Captured by coordinators &amp; the bot · the AI engine routes each one to a Care Task + tailored education (closes the dose-2 drop-off loop)</div></div></div><div id="barFeed"></div></div>
   <div class="gx" style="margin-bottom:14px">
     <div class="card cp"><div class="ch"><div><div class="ct">Why patients decline or delay</div><div class="cs">Mapped to WHO 5C model</div></div></div><canvas id="barrierChart" height="160"></canvas></div>
     <div class="ai"><div class="ai-h"><div class="ai-ic">🧠</div><div><div class="ai-t">AI counter-message</div><div class="ai-s">Auto-served Arabic</div></div></div>
@@ -539,6 +541,16 @@ const COND={
  ckd:{label:'Chronic kidney disease',w:9,imm:false},
  lung:{label:'Chronic lung disease',w:7,imm:false},
  cardio:{label:'Heart disease',w:7,imm:false},
+ leukemia:{label:'Leukaemia / lymphoma',w:30,imm:true},
+ bmt:{label:'Bone marrow / stem-cell transplant',w:32,imm:true},
+ rheumatoid:{label:'Rheumatoid arthritis',w:16,imm:true},
+ ibd:{label:'Inflammatory bowel disease',w:14,imm:true},
+ lupus:{label:'Lupus (SLE)',w:16,imm:true},
+ steroids:{label:'Long-term high-dose steroids',w:15,imm:true},
+ copd:{label:'COPD',w:8,imm:false},
+ dialysis:{label:'On dialysis',w:12,imm:false},
+ asplenia:{label:'Asplenia / splenectomy',w:10,imm:false},
+ liver:{label:'Chronic liver disease',w:8,imm:false},
 };
 const RiskEngine={
   assess(p){
@@ -588,6 +600,19 @@ const INSURERS=['Bupa Arabia','Tawuniya','MedGulf','Al Rajhi Takaful','MOH (nati
 const DEPTS=['Immunization Clinic','Family Medicine','Internal Medicine','Endocrine','Chronic Care'];
 const HOSPITALS=['King Fahad Medical City','King Saud Medical City','Al Olaya PHC','Al Naseem PHC','King Abdulaziz Hospital'];
 const VISIT_TYPES=['Vaccination','Scheduled','Follow-up','Tele-consult','Walk-in'];
+const REFERRALS=['Campaign','Physician referral','Vaccine coordinator (clinic)','Clinic site / poster','Media','Family / friend','Pharmacy','Other'];
+const MEDIA=['Social media','TV','Radio','SMS','WhatsApp','Newspaper','Website'];
+/* Barrier → AI-recommended Care Task + education (rule-based) */
+const BARRIERS={
+ flu:{label:'Flu-like symptoms after Dose 1',task:'Reassure re: reactogenicity; rebook Dose 2 once recovered',edu:'Symptom care',role:'Nurse',type:'aefi'},
+ fear:{label:'Afraid of side effects',task:'Counsel on safety; send reassurance message',edu:'What to expect',role:'Educator',type:'aefi'},
+ busy:{label:'Too busy / forgot',task:'Send reminder + offer a flexible slot',edu:'Dose 2 importance',role:'Coordinator',type:'dose'},
+ cost:{label:'Worried about cost',task:'Confirm coverage; reassure free under programme',edu:'Booking',role:'Coordinator',type:'elig'},
+ travel:{label:'Travel / distance',task:'Offer nearest centre or pharmacy slot',edu:'Booking',role:'Coordinator',type:'dose'},
+ doubt:{label:'Doubts the vaccine works',task:'Share efficacy facts + doctor endorsement',edu:'Shingles risk',role:'Physician',type:'elig'},
+ access:{label:'Could not get an appointment',task:'Book Dose 2 directly; confirm by WhatsApp',edu:'Booking',role:'Coordinator',type:'dose'},
+};
+const barrierLog=[];
 const patients=[];const used=new Set();
 function makePatient(i,opt){
   opt=opt||{};
@@ -621,11 +646,12 @@ function makePatient(i,opt){
   const diag=cond.length?cond.map(c=>COND[c]?COND[c].label:c).join(', '):(age>=50?'Healthy adult — age-based eligibility':'Adult immunisation');
   const allDates=D_EARLY.concat(D_MID,D_LATE);const visits=[];const vN=1+Math.floor(rnd()*3);
   for(let v=0;v<vN;v++)visits.push({type:pk(VISIT_TYPES),dept,date:pk(allDates),status:pk(['Completed','Completed','Scheduled','No-show']),doc:PHCs[i%PHCs.length].doc,coord:'Mona Al-Zahrani',ins:insurance});
+  const referral=pk(REFERRALS),media=referral==='Media'?pk(MEDIA):'';
   return {id:i,n:fn[0]+' '+ln[0],en:fn[1]+' '+ln[1],file:'JSR-'+(204000+i*17+Math.floor(rnd()*9)),sex,age,cond,caregiver,
     phc:PHCs[i%PHCs.length].n,doc:PHCs[i%PHCs.length].doc,risk:profile,rk,ab:'av'+rk,
     elig:eligibility({age,cond,caregiver}),score:a.score,tier:caregiver?'—':a.tier,drivers:a.drivers,schedule:a.schedule,immuno,
     f,st:sm.st,sb:sm.sb,pri:sm.pri,act:sm.act,d1:sm.d1,d2:sm.d2,last:pk(LASTS),symptom,aefiFlag,edu,disc:[],
-    allergy,nka,allergyDate:nka?'—':pk(D_EARLY),allergyHospital:nka?'—':pk(HOSPITALS),insurance,dept,fallRisk,weight,height,bmi,bp,temp,hr,diag,visits};
+    allergy,nka,allergyDate:nka?'—':pk(D_EARLY),allergyHospital:nka?'—':pk(HOSPITALS),insurance,dept,fallRisk,weight,height,bmi,bp,temp,hr,diag,visits,referral,media};
 }
 for(let i=0;i<50;i++)patients.push(makePatient(i));
 
@@ -752,7 +778,7 @@ function vcPick(i){vcSel=i;const c=consults[i],p=c.p;
 /* ===== Enrol wizard (live risk assessment) ===== */
 const WSTEPS=['Demographics','Risk & Immunity','Vaccination History','AI Review'];
 const REASONS=['Eligible adult 50+','Immunocompromised adult 18+','Diabetic 50+ — elevated zoster risk','Cancer / chemotherapy patient','Organ transplant recipient','On immunosuppressive therapy','Caregiver referral','Post-shingles — prevent recurrence','Routine adult immunisation','Pharmacy / workplace referral'];
-const wiz={step:1,name:'',mrn:'',age:'',sex:'Male',phc:PHCs[0].n,coordinator:'Mona Al-Zahrani',reason:'',insurance:'Bupa Arabia',dept:'Immunization Clinic',visitDate:'',cond:[],allergy:'No known allergies',allergyDate:'',hospital:'',priorShingles:'no',shinglesDate:'',priorVaccine:'no',zosterDate:'',zosterInfo:'',hasD1:'no',d1date:''};
+const wiz={step:1,name:'',mrn:'',age:'',sex:'Male',phc:PHCs[0].n,coordinator:'Mona Al-Zahrani',reason:'',insurance:'Bupa Arabia',dept:'Immunization Clinic',referral:'Campaign',media:'',visitDate:'',cond:[],allergy:'No known allergies',allergyDate:'',hospital:'',priorShingles:'no',shinglesDate:'',priorVaccine:'no',zosterDate:'',zosterInfo:'',hasD1:'no',d1date:''};
 function setW(k,v){wiz[k]=v;updateLive();}
 function setWR(k,v){wiz[k]=v;renderWiz();}
 function toggleCond(k,el){if(el.checked){if(!wiz.cond.includes(k))wiz.cond.push(k);}else{wiz.cond=wiz.cond.filter(c=>c!==k);}updateLive();}
@@ -771,7 +797,8 @@ function renderWiz(){
     <div class="g2">${fld('Full name (English)',`<input value="${wiz.name}" oninput="setW('name',this.value)" placeholder="e.g. Mohammed Al-Otaibi">`)}${fld('MRN / National ID',`<input value="${wiz.mrn}" oninput="setW('mrn',this.value)" placeholder="SA-XXXX">`)}</div>
     <div class="g3">${fld('Age',`<select onchange="setW('age',this.value)"><option value="">— select —</option>${Array.from({length:83},(_,k)=>18+k).map(n=>`<option ${String(wiz.age)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`)}${fld('Sex',`<select onchange="setW('sex',this.value)"><option ${wiz.sex==='Male'?'selected':''}>Male</option><option ${wiz.sex==='Female'?'selected':''}>Female</option></select>`)}${fld('PHC centre',`<select onchange="setW('phc',this.value)">${PHCs.map(p=>`<option ${wiz.phc===p.n?'selected':''}>${p.n}</option>`).join('')}</select>`)}</div>
     <div class="g2">${fld('Immunization coordinator',`<input value="${wiz.coordinator}" oninput="setW('coordinator',this.value)">`)}${fld('Reason for enrolment',`<input list="reasonList" value="${wiz.reason}" oninput="setW('reason',this.value)" placeholder="Type or pick…"><datalist id="reasonList">${REASONS.map(r=>`<option>${r}</option>`).join('')}</datalist>`)}</div>
-    <div class="g3">${fld('Insurance',`<select onchange="setW('insurance',this.value)">${INSURERS.map(x=>`<option ${wiz.insurance===x?'selected':''}>${x}</option>`).join('')}</select>`)}${fld('Department',`<select onchange="setW('dept',this.value)">${DEPTS.map(x=>`<option ${wiz.dept===x?'selected':''}>${x}</option>`).join('')}</select>`)}${fld('Date of visit / call',`<input type="date" value="${wiz.visitDate}" onchange="setW('visitDate',this.value)">`)}</div>`;
+    <div class="g3">${fld('Insurance',`<select onchange="setW('insurance',this.value)">${INSURERS.map(x=>`<option ${wiz.insurance===x?'selected':''}>${x}</option>`).join('')}</select>`)}${fld('How did you hear about us?',`<select onchange="setWR('referral',this.value)">${REFERRALS.map(x=>`<option ${wiz.referral===x?'selected':''}>${x}</option>`).join('')}</select>`)}${fld('Date of visit / call',`<input type="date" value="${wiz.visitDate}" onchange="setW('visitDate',this.value)">`)}</div>
+    ${wiz.referral==='Media'?`<div class="g2">${fld('Which media?',`<select onchange="setW('media',this.value)"><option value="">— select —</option>${MEDIA.map(x=>`<option ${wiz.media===x?'selected':''}>${x}</option>`).join('')}</select>`)}<div></div></div>`:''}`;
   } else if(wiz.step===2){
     h=`<div class="fsec">Risk factors & immune status</div><div style="font-size:11px;color:var(--mu);margin-bottom:8px">Tick all that apply — immunocompromising conditions make a patient eligible from age 18.</div>
     <div class="med-grid">${Object.keys(COND).map(k=>`<label class="med"><input type="checkbox" ${wiz.cond.includes(k)?'checked':''} onchange="toggleCond('${k}',this)"><div><b>${COND[k].label}</b><small>${COND[k].imm?'Immunocompromising · eligible 18+':'Comorbidity · raises risk'}</small></div></label>`).join('')}</div>
@@ -787,7 +814,7 @@ function renderWiz(){
   } else {
     const age=parseInt(wiz.age)||0,a=RiskEngine.assess({age,cond:wiz.cond}),el=eligibility({age,cond:wiz.cond,caregiver:false});
     const cls=(a.tier==='Very High'||a.tier==='High')?'rH':a.tier==='Moderate'?'rM':'rL';
-    const msg=el.ok?`مرحباً ${wiz.name||''} 👋 أنت مؤهل للقاح الحزام الناري (شينجريكس). ${a.immuno?'وبسبب ضعف المناعة سنوفر جدولاً أسرع.':wiz.cond.includes('diabetes')?'وبسبب السكري خطرك أعلى.':'الخطر يزداد مع العمر.'} احجز: 🔗 jusoor.health/shingrix`:`شكراً 🤍 اللقاح غير موصى به حالياً دون نقص مناعة.`;
+    const msg=!el.ok?`شكراً 🤍 اللقاح غير موصى به حالياً دون نقص مناعة.`:wiz.hasD1==='yes'?`مرحباً ${wiz.name||''} 👋 لقد أخذت الجرعة الأولى من شينجريكس. الخطوة التالية هي الجرعة الثانية ${a.immuno?'بعد شهر إلى شهرين':'بعد شهرين إلى ستة أشهر'} لإكمال الحماية، وسنذكّرك بموعدها. احجز: 🔗 jusoor.health/shingrix-d2`:`مرحباً ${wiz.name||''} 👋 أنت مؤهل للقاح الحزام الناري (شينجريكس). ${a.immuno?'وبسبب ضعف المناعة سنوفر جدولاً أسرع.':wiz.cond.includes('diabetes')?'وبسبب السكري خطرك أعلى.':'الخطر يزداد مع العمر.'} احجز جرعتك الأولى: 🔗 jusoor.health/shingrix`;
     h=`<div class="fsec">AI review & enrolment</div>
     <div class="card cp" style="border-top:3px solid ${el.ok?'var(--gr)':'var(--su)'}"><div style="font-size:15px;font-weight:800;color:${el.ok?'var(--grd)':'var(--tx)'};margin-bottom:8px">${el.ok?'✅ Eligible for Shingrix':'Not eligible by current criteria'}</div>
     <div class="sc"><b>Patient</b><span class="m">${wiz.name||'—'} · ${wiz.mrn||'—'}</span></div>
@@ -810,7 +837,7 @@ function enrolNow(){
     phc:wiz.phc,doc:(PHCs.find(x=>x.n===wiz.phc)||{}).doc||wiz.coordinator,coordinator:wiz.coordinator,risk:a.immuno?'Immunocompromised':(wiz.cond.includes('diabetes')&&age>=50?'Diabetic 50+':'General 50+'),rk,ab:'av'+rk,
     elig:el,score:a.score,tier:a.tier,drivers:a.drivers,schedule:a.schedule,immuno:a.immuno,
     f,st:sm.st,sb:sm.sb,pri:sm.pri,act:sm.act,d1:wiz.hasD1==='yes'?(wiz.d1date||'recent'):'—',d2:wiz.hasD1==='yes'?(a.immuno?'Schedule (short)':'Schedule'):'—',last:'Today',symptom:'—',aefiFlag:false,edu:{},disc:[],
-    allergy:wiz.allergy,nka:wiz.allergy==='No known allergies',allergyDate:wiz.allergyDate||'—',allergyHospital:wiz.hospital||'—',insurance:wiz.insurance,dept:wiz.dept,fallRisk:age>=78?'High':age>=68?'Moderate':'Low',weight:70,height:165,bmi:'25.7',bp:'120/80',temp:'36.6',hr:76,diag:wiz.cond.length?wiz.cond.map(c=>COND[c]?COND[c].label:c).join(', '):'Adult immunisation',visits:[{type:'Vaccination',dept:wiz.dept,date:wiz.visitDate||'Today',status:'Scheduled',doc:(PHCs.find(x=>x.n===wiz.phc)||{}).doc||wiz.coordinator,coord:wiz.coordinator,ins:wiz.insurance}]});
+    allergy:wiz.allergy,nka:wiz.allergy==='No known allergies',allergyDate:wiz.allergyDate||'—',allergyHospital:wiz.hospital||'—',insurance:wiz.insurance,dept:wiz.dept,fallRisk:age>=78?'High':age>=68?'Moderate':'Low',weight:70,height:165,bmi:'25.7',bp:'120/80',temp:'36.6',hr:76,diag:wiz.cond.length?wiz.cond.map(c=>COND[c]?COND[c].label:c).join(', '):'Adult immunisation',visits:[{type:'Vaccination',dept:wiz.dept,date:wiz.visitDate||'Today',status:'Scheduled',doc:(PHCs.find(x=>x.n===wiz.phc)||{}).doc||wiz.coordinator,coord:wiz.coordinator,ins:wiz.insurance}],referral:wiz.referral,media:wiz.media});
   renderReg();refreshMetrics();toast('Patient enrolled ✓',wiz.name+' · '+(wiz.mrn||'new MRN'));
   Object.assign(wiz,{step:1,name:'',mrn:'',age:'',cond:[],reason:'',hasD1:'no',d1date:''});renderWiz();show('registry');
 }
@@ -873,7 +900,7 @@ function openPat(id){const p=patients[id];document.getElementById('pmT').textCon
    <div style="font-size:11px;color:var(--mu);margin-top:3px">${p.age}y ${p.sex} · ${p.file} · ${p.phc} · ${p.doc} · <span class="chip ch-g">Covered</span></div>
    <div style="display:flex;gap:7px;margin-top:9px"><button class="btn btn-p btn-sm" onclick="show('messages')">💬 Message</button><button class="btn btn-g btn-sm" onclick="openSummary(${p.id})">📄 AI Patient Summary</button></div></div></div>
    <div style="margin-top:12px;border-top:1px solid var(--bdr);padding-top:12px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--mu)"><span>⚖️ Weight <b style="color:var(--tx)">${p.weight}</b> kg</span><span>📏 Height <b style="color:var(--tx)">${p.height}</b> cm</span><span>BMI <b style="color:var(--tx)">${p.bmi}</b></span><span>🩸 BP <b style="color:var(--tx)">${p.bp}</b></span><span>🌡️ Temp <b style="color:var(--tx)">${p.temp}</b>°C</span><span>❤️ HR <b style="color:var(--tx)">${p.hr}</b> bpm</span></div>
-   <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">${p.nka?'<span class="chip ch-g">✓ No known allergies</span>':'<span class="chip ch-r">⚠ Allergy: '+p.allergy+(p.allergyDate!=='—'?' · '+p.allergyDate:'')+'</span>'}<span class="chip ch-b">🏥 ${p.dept}</span><span class="chip ch-p">🪪 ${p.insurance}</span><span class="chip ch-s">Dx: ${p.diag}</span></div>
+   <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">${p.nka?'<span class="chip ch-g">✓ No known allergies</span>':'<span class="chip ch-r">⚠ Allergy: '+p.allergy+(p.allergyDate!=='—'?' · '+p.allergyDate:'')+'</span>'}<span class="chip ch-b">📣 Heard via: ${p.referral||'—'}${p.media?' ('+p.media+')':''}</span><span class="chip ch-p">🪪 ${p.insurance}</span><span class="chip ch-s">Dx: ${p.diag}</span></div>
    <div class="vit" style="margin-top:14px;grid-template-columns:repeat(6,1fr)"><div><div class="v" style="color:${rc}">${p.caregiver?'—':p.score+'%'}</div><div class="l">AI risk</div></div><div><div class="v" style="font-size:12px;color:${p.elig.ok?'var(--gr)':'var(--mu)'}">${p.elig.ok?'Eligible':'—'}</div><div class="l">Eligibility</div></div><div><div class="v" style="font-size:12px">${p.d1}</div><div class="l">Dose 1</div></div><div><div class="v" style="font-size:12px">${p.d2}</div><div class="l">Dose 2</div></div><div><div class="v" style="font-size:11px">${p.immuno?'1–2 mo':'2–6 mo'}</div><div class="l">Schedule</div></div><div><div class="v" style="font-size:11px">${p.symptom}</div><div class="l">Symptom</div></div></div></div>
    <div class="g2" style="margin-top:14px"><div class="card cp"><div class="ct" style="margin-bottom:8px">RISK FACTORS (${p.cond.length})</div>${condList(p)}</div>
    <div class="card cp"><div class="ct" style="margin-bottom:8px">VACCINATION & FOLLOW-UP</div>
@@ -882,6 +909,7 @@ function openPat(id){const p=patients[id];document.getElementById('pmT').textCon
      <div class="sc"><div class="scd ${p.aefiFlag?'s-ov':'s-ok'}"></div><b>Post-vaccine symptom</b><span class="m">${p.symptom}</span></div>
      <div class="sc"><div class="scd s-ok"></div><b>Last contact</b><span class="m">${p.last}</span></div></div></div>
    <div class="card cp" style="margin-top:14px"><div class="ct" style="margin-bottom:10px">VISITS (${p.visits.length})</div><div class="tbl-w"><table class="tbl"><thead><tr><th>Visit type</th><th>Department</th><th>Date</th><th>Status</th><th>Doctor</th><th>Coordinator</th><th>Insurance</th></tr></thead><tbody>${p.visits.map(v=>`<tr><td>${v.type}</td><td>${v.dept}</td><td>${v.date}</td><td><span class="chip ${v.status==='Completed'?'ch-g':v.status==='No-show'?'ch-r':'ch-a'}">${v.status}</span></td><td>${v.doc}</td><td>${v.coord}</td><td style="font-size:11px">${v.ins}</td></tr>`).join('')}</tbody></table></div></div>
+   <div class="card cp" style="margin-top:14px"><div class="ct" style="margin-bottom:8px">Log a barrier / drop-off reason <span style="font-weight:400;color:var(--mu);font-size:10px">· AI routes it to Care Tasks + tailored education</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="barSel" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--bdr);border-radius:7px;font-size:12px">${Object.keys(BARRIERS).map(k=>`<option value="${k}">${BARRIERS[k].label}</option>`).join('')}</select><button class="btn btn-p btn-sm" onclick="logBarrier(${p.id})">Log barrier</button></div></div>
    <div class="card cp" style="margin-top:14px;border-color:var(--rdl)"><div class="ct" style="margin-bottom:10px;color:var(--rd)">⚠ AI ALERTS (${A.length}) <span style="font-weight:400;color:var(--mu);font-size:10px">· generated by the local rule engine</span></div>${A.map(x=>`<div style="background:${x.s==='r'?'var(--rdl)':x.s==='a'?'var(--aml)':'var(--grl)'};border-left:3px solid ${x.s==='r'?'var(--rd)':x.s==='a'?'var(--am)':'var(--gr)'};padding:9px 12px;border-radius:7px;margin-bottom:6px;font-size:12px">${x.t}</div>`).join('')}</div>
    <div class="card cp" style="margin-top:14px"><div class="ct" style="margin-bottom:8px">CARE-TEAM COMMUNICATION</div>
      <div style="font-size:12px;color:var(--mu);line-height:1.6"><b style="color:var(--tx)">Sarah Al-Ghamdi</b> <span style="font-size:10px">Care Coordinator · ${p.last}</span><br>${p.f==='d2over'?'Patient called — overdue for Dose 2, will book this week.':p.aefiFlag?'Patient reported '+p.symptom.toLowerCase()+' after dose — reassured, monitoring.':p.f==='caregiver'?'Caregiver enquiry — capturing eligible relative\'s details.':'Enrolled and contacted — engagement ongoing.'}</div>
@@ -917,6 +945,14 @@ function openSummary(id){const p=patients[id];document.getElementById('pmT').tex
    </div>`;
   document.getElementById('patModal').classList.add('open');}
 function closePat(){document.getElementById('patModal').classList.remove('open');}
+function logBarrier(pid){const k=document.getElementById('barSel').value,b=BARRIERS[k],p=patients[pid];
+  barrierLog.unshift({pid,key:k,label:b.label,date:'Today',task:b.task,edu:b.edu});
+  addTodo(b.task,b.type,b.role,pid);
+  if(p.edu)p.edu[b.edu]=false;
+  renderEdu();renderBarriers();
+  toast('Barrier logged ✓','AI → Care Task + '+b.edu+' education');}
+function renderBarriers(){const el=document.getElementById('barFeed');if(!el)return;
+  el.innerHTML=barrierLog.length?barrierLog.slice(0,12).map(x=>{const p=patients[x.pid];return `<div style="border:1px solid var(--bdr);border-radius:9px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">${p?p.en:'—'} ${p?'<span class="tag '+p.rk+'" style="font-weight:600">'+p.risk+'</span>':''}</b><span style="font-size:10px;color:var(--mu)">${x.date}</span></div><div style="font-size:12px;color:var(--rd);margin-top:3px">🚧 ${x.label}</div><div style="font-size:11px;color:var(--mu);margin-top:4px">🤖 AI action → <b>Care Task:</b> ${x.task} · <b>Education:</b> ${x.edu}</div></div>`;}).join(''):'<div class="note">No barriers logged yet. Open any patient → <b>“Log a barrier”</b> to capture why someone didn’t proceed (e.g. flu-like symptoms after Dose 1). The AI engine collects it here, creates a Care Task, and queues tailored education for that patient — closing the dose-2 drop-off loop.</div>';}
 document.getElementById('patModal').onclick=e=>{if(e.target.id==='patModal')closePat();};
 
 /* ===== Settings ===== */
@@ -962,6 +998,27 @@ function prev(){document.getElementById('prevMsg').innerHTML=document.getElement
 document.getElementById('msgBox').addEventListener('input',prev);
 function aiGen(m){const i=document.getElementById('segSel').selectedIndex;let t=segs[i].m;if(m==='short')t=t.split('.')[0]+'. 🔗 jusoor.health/shingrix';document.getElementById('msgBox').value=t;prev();toast(m==='short'?'Shortened ✓':'Regenerated ✓');}
 
+/* ===== Local knowledge base (RAG-style, on-device · no data leaves Saudi) ===== */
+const KB=[
+ {q:'هل اللقاح فعّال؟',a:'نعم، فعاليته أكثر من 90% في الوقاية من الحزام الناري لمن هم 50 سنة فأكثر، وتبقى الحماية مرتفعة لسنوات (نحو 82% في السنة الحادية عشرة).'},
+ {q:'كم تدوم الحماية؟ وهل أحتاج جرعة منشطة؟',a:'تبقى الحماية عالية لأكثر من 7 سنوات بعد التطعيم، ولا توجد توصية بجرعة منشطة حالياً.'},
+ {q:'ما هي الأعراض الجانبية؟',a:'ألم واحمرار وتورم مكان الحقن، ألم عضلات، تعب، صداع، قشعريرة، حمى خفيفة، وأحياناً اضطراب بسيط بالمعدة. تستمر عادةً يومين إلى ثلاثة أيام وتزول وحدها.'},
+ {q:'هل اللقاح حي؟ وهل آمن لضعيف المناعة؟',a:'اللقاح غير حي (بروتيني)، لذا فهو آمن لمن لديهم نقص مناعة، وهم من الفئات المستهدفة من عمر 18 سنة.'},
+ {q:'أصبت بالحزام الناري سابقاً، هل أحتاج اللقاح؟',a:'نعم، يُنصح به بعد التعافي لأن الإصابة قد تتكرر.'},
+ {q:'أخذت لقاحاً قديماً (زوستافاكس)، هل آخذ شينجريكس؟',a:'نعم، يُنصح بأخذ شينجريكس حتى لمن أخذ اللقاح القديم.'},
+ {q:'هل يمكن أخذه مع لقاح الإنفلونزا أو كورونا؟',a:'نعم، يمكن إعطاؤه في نفس الزيارة مع لقاح الإنفلونزا أو كوفيد، في موضع حقن مختلف.'},
+ {q:'هل هو آمن للحامل أو المرضع؟',a:'يُفضّل تأجيله حتى بعد الحمل أو الرضاعة. استشيري طبيبكِ.'},
+ {q:'متى لا يجب أخذ اللقاح؟',a:'عند وجود حساسية لأحد مكوناته أو لجرعة سابقة، أو أثناء نوبة حزام ناري نشطة أو مرض حاد مصحوب بحمى (يؤجل حتى التعافي).'},
+ {q:'كم عدد الجرعات والمدة بينهما؟',a:'جرعتان؛ الثانية بعد شهرين إلى ستة أشهر من الأولى (شهر إلى شهرين لبعض ضعيفي المناعة).'},
+ {q:'تأخرت عن الجرعة الثانية، ماذا أفعل؟',a:'لا داعي للبدء من جديد — خذ الجرعة الثانية في أقرب وقت ممكن لتكمل الحماية.'},
+ {q:'هل اللقاح مغطى أو مجاني؟',a:'ضمن البرنامج الوطني، التطعيم متاح للمؤهلين؛ سيوضح لك المنسق التفاصيل.'},
+ {q:'هل يسبب اللقاح الحزام الناري؟',a:'لا، اللقاح لا يسبب المرض لأنه غير حي.'},
+ {q:'كيف أحجز؟',a:'عبر الرابط jusoor.health/shingrix أو سنساعدك في حجز موعد بأقرب مركز صحي.'},
+ {q:'ماذا أفعل إذا زادت الأعراض؟',a:'معظم الأعراض بسيطة وتزول خلال يومين. إذا ظهرت حمى عالية أو طفح أو صعوبة تنفس، تواصل مع المركز فوراً.'},
+];
+function renderKB(){const el=document.getElementById('botKB');if(!el)return;
+  el.innerHTML='<div style="columns:2;column-gap:14px">'+KB.map((k)=>`<div style="break-inside:avoid;border:1px solid var(--bdr);border-radius:9px;padding:10px 12px;margin-bottom:8px;cursor:pointer;direction:rtl" onclick="var a=this.querySelector('.kba');a.style.display=a.style.display==='block'?'none':'block'"><div style="font-size:12px;font-weight:700">${k.q}</div><div class="kba" style="display:none;font-size:11px;color:var(--mu);margin-top:6px;line-height:1.7">${k.a}</div></div>`).join('')+'</div>';}
+
 /* ===== Bot ===== */
 const chat=document.getElementById('chat'),opts=document.getElementById('opts');
 function tm(){const d=new Date();return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');}
@@ -981,13 +1038,15 @@ const B={start(){chat.innerHTML='';typing(()=>{add('أهلاً بك 👋 أنا 
  reg(){typing(()=>{add('لنبدأ بحجز جرعتك الأولى 💉 احجز: 🔗 jusoor.health/shingrix','bot');B.thx();});},
  sym(){typing(()=>{add('بعد التطعيم، إذا شعرت بألم بالذراع أو تعب فهذا طبيعي. هل تريد متابعة الأعراض؟','bot');setOpts([{t:'نعم',go:B.symY},{t:'لا، شكراً',go:B.end}]);});},
  symY(){typing(()=>{add('سنرسل لك رسالة بعد ٣ أيام للاطمئنان 🤍 وإذا ظهرت حمى عالية أو طفح تواصل معنا فوراً.','bot');B.end();});},
- thx(){typing(()=>{add('هل لديك سؤال آخر؟ 😊','bot');setOpts([{t:'هل اللقاح آمن؟',go:B.safe},{t:'لا، شكراً',go:B.end}]);});},
- safe(){typing(()=>{add('آمن ومعتمد ✅ أعراض بسيطة ليوم أو يومين فقط.','bot');setOpts([{t:'شكراً',go:B.end}]);});},
+ thx(){typing(()=>{add('هل لديك سؤال آخر؟ 😊','bot');setOpts([{t:'أسئلة شائعة',go:B.faqMenu},{t:'هل اللقاح آمن؟',go:B.safe},{t:'لا، شكراً',go:B.end}]);});},
+ faqMenu(){typing(()=>{add('اختر سؤالك 👇 (قاعدة معرفة محلية)','bot');setOpts([{t:KB[2].q,go:()=>B.ans(2)},{t:KB[1].q,go:()=>B.ans(1)},{t:KB[6].q,go:()=>B.ans(6)},{t:KB[9].q,go:()=>B.ans(9)},{t:KB[10].q,go:()=>B.ans(10)},{t:'لا، شكراً',go:B.end}]);});},
+ ans(i){typing(()=>{add(KB[i].a,'bot');setOpts([{t:'سؤال آخر',go:B.faqMenu},{t:'شكراً',go:B.end}]);});},
+ safe(){typing(()=>{add('آمن ومعتمد ✅ أعراض بسيطة ليوم أو يومين فقط، واللقاح غير حي لذا لا يسبب المرض.','bot');setOpts([{t:'أسئلة شائعة',go:B.faqMenu},{t:'شكراً',go:B.end}]);});},
  end(){typing(()=>{add('شكراً لتواصلك مع مساعد جسور 🤍','bot');opts.innerHTML='<button onclick="botRestart()">↻ ابدأ من جديد</button>';});}};
 function botRestart(){B._im=false;B.start();}
 
 /* ===== init ===== */
-renderReg();refreshMetrics();renderHuddle();renderTasks('all');renderVC();renderMessages();renderEdu();pickSeg(0);botRestart();renderWiz();restoreSession();
+renderReg();refreshMetrics();renderHuddle();renderTasks('all');renderVC();renderMessages();renderEdu();pickSeg(0);botRestart();renderWiz();restoreSession();renderBarriers();renderKB();
 </script>
 </body>
 </html>
