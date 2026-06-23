@@ -269,11 +269,11 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
   </div>
   <div class="g2" style="margin-bottom:14px">
     <div class="card cp"><div class="ch"><div><div class="ct">AI risk distribution</div><div class="cs">Enrolled patients by risk band</div></div></div><canvas id="riskDistChart" height="150"></canvas></div>
-    <div class="card cp"><div class="ch"><div><div class="ct">Risk segments</div><div class="cs">Enrolled by profile</div></div></div><canvas id="segChart" height="150"></canvas></div>
+    <div class="card cp"><div class="ch"><div><div class="ct">Risk segments</div><div class="cs">Enrolled by profile · click a slice</div></div></div><div style="height:210px"><canvas id="segChart"></canvas></div></div>
   </div>
   <div class="g2" style="margin-bottom:14px">
-    <div class="card cp"><div class="ch"><div><div class="ct">Series completion — trend</div><div class="cs">Cumulative Dose 1 vs complete</div></div></div><canvas id="trendChart" height="150"></canvas></div>
-    <div class="card cp"><div class="ch"><div><div class="ct">Risk stratification</div><div class="cs">By profile · high / moderate / low</div></div></div><canvas id="stratChart" height="150"></canvas></div>
+    <div class="card cp"><div class="ch"><div><div class="ct">Series completion — trend</div><div class="cs">Cumulative Dose 1 vs complete</div></div></div><div style="height:210px"><canvas id="trendChart"></canvas></div></div>
+    <div class="card cp"><div class="ch"><div><div class="ct">Risk stratification</div><div class="cs">By profile · click a bar</div></div></div><div style="height:210px"><canvas id="stratChart"></canvas></div></div>
   </div>
   <div class="g3" style="margin-bottom:14px">
     <div class="card cp"><div class="ct" style="margin-bottom:10px">Dose status</div><canvas id="statusChart" height="160"></canvas></div>
@@ -311,6 +311,10 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
 
 <!-- CARE TASKS -->
 <div class="view" id="v-tasks">
+  <div class="g2" style="margin-bottom:14px">
+    <div class="kpi" style="--kc:var(--rd)"><div class="kl">Open tasks</div><div class="kv" style="color:var(--rd)" id="taskN">0</div><div class="ks">care-team to-do</div></div>
+    <div class="kpi" style="--kc:var(--gr)"><div class="kl">Completed today</div><div class="kv" style="color:var(--grd)" id="taskDoneN">0</div><div class="ks">resolved</div></div>
+  </div>
   <div class="filters" style="display:flex;gap:7px;margin-bottom:14px">
     <button class="btn btn-p btn-sm" data-tf="all" onclick="renderTasks('all',this)">All</button>
     <button class="btn btn-o btn-sm" data-tf="call" onclick="renderTasks('call',this)">Calls</button>
@@ -318,7 +322,7 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
     <button class="btn btn-o btn-sm" data-tf="aefi" onclick="renderTasks('aefi',this)">Side effects</button>
     <button class="btn btn-o btn-sm" data-tf="elig" onclick="renderTasks('elig',this)">Eligibility</button>
   </div>
-  <div class="card cp"><div class="ch"><div class="ct">Care Tasks · <span id="taskN">0</span> open</div><div class="cs" id="taskDone"></div></div><div id="taskList"></div></div>
+  <div class="card cp"><div class="ct" style="margin-bottom:3px">Care-team to-do list</div><div class="cs" style="margin-bottom:12px">Actions raised from the Morning Huddle land here, grouped by patient so the team doesn't forget — no duplicates.</div><div id="taskList"></div></div>
 </div>
 
 <!-- VIRTUAL CLINIC -->
@@ -345,16 +349,44 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
 
 <!-- MESSAGES -->
 <div class="view" id="v-messages">
-  <div class="mc">
-    <div class="inbox" id="inbox"></div>
-    <div class="thread"><div class="thd" id="thName">Select a conversation</div><div class="tbody" id="tbody"></div><div class="treply"><input id="reply" placeholder="اكتب رداً..."><button class="btn btn-p" onclick="sendReply()">إرسال</button></div></div>
+  <div class="gx">
+    <div class="card cp">
+      <div class="ct" style="margin-bottom:12px">Send patient message</div>
+      <div class="fg"><label>Patient — type name or file #</label><input id="msgPt" list="msgPtList" placeholder="Select patient…"><datalist id="msgPtList"></datalist></div>
+      <div class="fg"><label>Arabic template</label><select id="msgTpl" onchange="applyTpl()"><option value="">Choose template…</option></select></div>
+      <div class="fg"><label>Arabic message (للمريض)</label><textarea id="msgAr" rows="6" style="direction:rtl;line-height:1.7" placeholder="اكتب رسالتك بالعربية هنا…"></textarea></div>
+      <div class="fg"><label>English (reference)</label><textarea id="msgEn" rows="3" placeholder="English reference…"></textarea></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-p" onclick="sendMsg()">Send message</button><button class="btn btn-o" onclick="aiMsg()">✦ AI Generate</button></div>
+    </div>
+    <div class="card cp"><div class="ct" style="margin-bottom:10px">Message templates</div><div id="tplList"></div></div>
   </div>
 </div>
 
 <!-- EDUCATION -->
 <div class="view" id="v-education">
-  <div class="g3" id="eduTopics" style="margin-bottom:14px"></div>
-  <div class="card cp"><div class="ct" style="margin-bottom:10px">Education delivered by patient</div><div class="tbl-w"><table class="tbl"><thead><tr><th>Patient</th><th>Shingles risk</th><th>What to expect</th><th>Dose 2 importance</th><th>Symptom care</th><th>Booking</th></tr></thead><tbody id="eduBody"></tbody></table></div></div>
+  <div class="g4" style="margin-bottom:14px">
+    <div class="kpi" style="--kc:var(--bl)"><div class="kl">Active caseload</div><div class="kv" id="eduCase">50</div><div class="ks">enrolled</div></div>
+    <div class="kpi" style="--kc:var(--gr)"><div class="kl">Sessions delivered</div><div class="kv" id="eduSessions">0</div><div class="ks">patients reached</div></div>
+    <div class="kpi" style="--kc:var(--am)"><div class="kl">Active goals</div><div class="kv" id="eduGoals">0</div><div class="ks">set</div></div>
+    <div class="kpi" style="--kc:var(--rd)"><div class="kl">Education pending</div><div class="kv" style="color:var(--rd)" id="eduPending">0</div><div class="ks">to deliver</div></div>
+  </div>
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card cp"><div class="ct" style="margin-bottom:12px">Log education session</div>
+      <div class="fg"><label>Patient</label><input list="eduPtList" placeholder="Select patient…"><datalist id="eduPtList"></datalist></div>
+      <div class="g2"><div class="fg"><label>Session type</label><select><option>Pre-vaccination counselling</option><option>Reactogenicity / what to expect</option><option>Dose 2 importance</option><option>Post-vaccine symptom care</option><option>Booking &amp; reminders</option></select></div><div class="fg"><label>Duration (min)</label><select><option>15</option><option selected>30</option><option>45</option></select></div></div>
+      <div class="fg"><label>Notes</label><textarea rows="3" placeholder="Topics covered, patient understanding, barriers…"></textarea></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-o btn-sm" onclick="toast('AI note drafted ✓')">✦ AI draft note</button><button class="btn btn-g btn-sm" onclick="toast('Session saved ✓')">Save session</button></div>
+    </div>
+    <div class="card cp"><div class="ct" style="margin-bottom:12px">Set patient goal</div>
+      <div class="fg"><label>Patient</label><input list="eduPtList" placeholder="Select patient…"></div>
+      <div class="fg"><label>Goal category</label><select><option>Complete two-dose series</option><option>Attend Dose 2 on time</option><option>Report symptoms if any</option><option>Understand shingles risk</option></select></div>
+      <div class="fg"><label>Specific goal (SMART)</label><textarea rows="2" placeholder="e.g. Book and attend Dose 2 within the 2–6 month window"></textarea></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn btn-o btn-sm" onclick="toast('AI SMART goal ✓')">✦ AI SMART goal</button></div>
+      <div class="fg"><label>Target date</label><input type="date"></div>
+      <button class="btn btn-b btn-sm" onclick="toast('Goal set ✓')">Set goal</button>
+    </div>
+  </div>
+  <div class="card cp"><div class="ct" style="margin-bottom:10px">Education progress tracker</div><div class="tbl-w"><table class="tbl"><thead><tr><th>Patient</th><th>Profile</th><th>Shingles risk</th><th>What to expect</th><th>Dose 2</th><th>Symptom care</th><th>Booking</th><th>Progress</th></tr></thead><tbody id="eduBody"></tbody></table></div></div>
 </div>
 
 <!-- BOT -->
@@ -618,14 +650,14 @@ function hudPick(id){hudSel=id;const p=patients[id];
     <div class="disc" id="disc">${p.disc.length?p.disc.map(d=>`<div class="dm"><div class="who who-${d.r==='Physician'?'md':d.r==='Nurse'?'nu':'co'}">${d.r}</div><div class="bub">${d.t}</div></div>`).join(''):'<div style="font-size:11px;color:var(--mu)">No discussion yet — physician, nurse or coordinator can message below.</div>'}</div>
     <div style="display:flex;gap:7px"><select id="discRole" style="width:120px;padding:7px;border:1px solid var(--bdr);border-radius:7px;font-size:12px"><option>Physician</option><option>Nurse</option><option>Coordinator</option></select><input id="discMsg" placeholder="Message..." style="flex:1;padding:7px 10px;border:1px solid var(--bdr);border-radius:7px;font-size:12px"><button class="btn btn-p btn-sm" onclick="sendDisc()">Send</button></div>
     <div style="font-size:10px;font-weight:700;color:var(--mu);letter-spacing:.05em;margin:12px 0 6px">ADD TO TO-DO LIST</div>
-    <div style="display:flex;gap:6px"><div class="tdi" title="Message" onclick="addTodo('Message ${p.en}')">✉</div><div class="tdi" title="Call" onclick="addTodo('Call ${p.en}')">📞</div><div class="tdi" title="Book" onclick="addTodo('Book dose for ${p.en}')">📅</div><div class="tdi" title="Dose" onclick="addTodo('Administer dose · ${p.en}')">💉</div><div class="tdi" title="Educator" onclick="addTodo('Educator review · ${p.en}')">📚</div></div>
+    <div style="display:flex;gap:6px"><div class="tdi" title="Message" onclick="addTodo('Message','call','Coordinator',${p.id})">✉</div><div class="tdi" title="Call" onclick="addTodo('Call','call','Nurse',${p.id})">📞</div><div class="tdi" title="Book" onclick="addTodo('Book dose','dose','Coordinator',${p.id})">📅</div><div class="tdi" title="Dose" onclick="addTodo('Administer dose','dose','Nurse',${p.id})">💉</div><div class="tdi" title="Educator" onclick="addTodo('Educator review','elig','Educator',${p.id})">📚</div></div>
     <div style="font-size:10px;font-weight:700;color:var(--mu);letter-spacing:.05em;margin:12px 0 6px">DISPOSITION FOR THE ROUND</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn btn-g btn-sm" onclick="dispo(${p.id},'Discussed')">✓ Discussed</button><button class="btn btn-o btn-sm" onclick="dispo(${p.id},'Nurse to call')">📞 Nurse to call</button><button class="btn btn-o btn-sm" onclick="dispo(${p.id},'MD review')">💊 MD review</button><button class="btn btn-o btn-sm" onclick="dispo(${p.id},'Educator')">📚 Educator</button><button class="btn btn-p btn-sm" onclick="hudNext()">⏭ Next</button></div>`;
   renderHuddle();
 }
 function sendDisc(){const p=patients[hudSel];const r=document.getElementById('discRole').value,t=document.getElementById('discMsg').value.trim();if(!t)return;p.disc.push({r,t});hudPick(hudSel);}
-function dispo(id,label){hudDone.add(id);const p=patients[id];const map={'Nurse to call':['call','Nurse'],'MD review':['dose','Physician'],'Educator':['elig','Educator']};
-  if(map[label])addTodo(label+' · '+p.en,map[label][0],map[label][1]);
+function dispo(id,label){hudDone.add(id);const map={'Nurse to call':['call','Nurse'],'MD review':['dose','Physician'],'Educator':['elig','Educator']};
+  if(map[label])addTodo(label,map[label][0],map[label][1],id);
   toast('Disposition: '+label,label==='Discussed'?'Marked discussed':'Added to to-do list');renderHuddle();}
 function hudNext(){const q=huddleQueue();const i=q.findIndex(p=>p.id===hudSel);if(i<q.length-1)hudPick(q[i+1].id);else toast('Round complete ✓');}
 let _tmr=null,_left=600;
@@ -634,22 +666,31 @@ function toggleTimer(){const b=document.getElementById('timerBtn');if(_tmr){clea
 /* ===== Care Tasks ===== */
 const tasks=[];
 patients.forEach(p=>{
-  if(p.f==='d2over')tasks.push({t:'Call '+p.en+' — Dose 2 overdue',d:p.phc+' · '+p.doc,role:'Nurse',type:'call',done:false});
-  if(p.f==='d1')tasks.push({t:'Schedule Dose 2 for '+p.en,d:p.immuno?'Short 1–2 mo interval':'2–6 mo interval',role:'Coordinator',type:'dose',done:false});
-  if(p.aefiFlag)tasks.push({t:'Follow up symptom report · '+p.en,d:'Reported: '+p.symptom,role:'Nurse',type:'aefi',done:false});
-  if(p.f==='none'&&p.score>=70)tasks.push({t:'Confirm eligibility & book · '+p.en,d:'High-risk, no dose',role:'Coordinator',type:'elig',done:false});
-  if(p.f==='caregiver')tasks.push({t:'Arrange relative vaccination · '+p.en,d:'Caregiver lead',role:'Coordinator',type:'call',done:false});
+  if(p.f==='d2over')tasks.push({t:'Call — Dose 2 overdue',d:p.phc+' · '+p.doc,role:'Nurse',type:'call',done:false,pid:p.id});
+  if(p.f==='d1')tasks.push({t:'Schedule Dose 2',d:p.immuno?'Short 1–2 mo interval':'2–6 mo interval',role:'Coordinator',type:'dose',done:false,pid:p.id});
+  if(p.aefiFlag)tasks.push({t:'Follow up symptom report',d:'Reported: '+p.symptom,role:'Nurse',type:'aefi',done:false,pid:p.id});
+  if(p.f==='none'&&p.score>=70)tasks.push({t:'Confirm eligibility & book',d:'High-risk, no dose',role:'Coordinator',type:'elig',done:false,pid:p.id});
+  if(p.f==='caregiver')tasks.push({t:'Arrange relative vaccination',d:'Caregiver lead',role:'Coordinator',type:'call',done:false,pid:p.id});
 });
 function activeTF(){const b=document.querySelector('[data-tf].btn-p');return b?b.dataset.tf:'all';}
-function addTodo(t,type,role){tasks.unshift({t,d:'Added from huddle',role:role||'Coordinator',type:type||'call',done:false});toast('Added to to-do ✓',t);renderTasks(activeTF());refreshMetrics();}
+function addTodo(t,type,role,pid){
+  const label=t.split('·')[0].trim();
+  if(tasks.some(x=>!x.done&&x.pid===pid&&x.t.split('·')[0].trim()===label)){toast('Already on the to-do list',t);return;}
+  tasks.unshift({t:label,d:'Added from huddle',role:role||'Coordinator',type:type||'call',done:false,pid:pid});
+  toast('Added to to-do ✓',t);renderTasks(activeTF());refreshMetrics();}
 function renderTasks(f,btn){
   if(btn){document.querySelectorAll('[data-tf]').forEach(b=>{b.className='btn btn-o btn-sm';});btn.className='btn btn-p btn-sm';}
-  const list=f&&f!=='all'?tasks.filter(t=>t.type===f):tasks;
-  document.getElementById('taskList').innerHTML=list.map((t,i)=>`<div class="task ${t.done?'done':''}"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${tasks.indexOf(t)})"><div style="flex:1"><div class="tt">${t.t}</div><div class="td">${t.d} · <span class="chip ${t.role==='Nurse'?'ch-t':'ch-p'}">${t.role}</span></div></div><span class="chip ch-s">${t.type}</span></div>`).join('')||'<div class="note">No tasks in this filter.</div>';
-  document.getElementById('taskN').textContent=tasks.filter(t=>!t.done).length;
-  document.getElementById('taskDone').textContent=tasks.filter(t=>t.done).length+' completed today';
-  document.getElementById('bTask').textContent=tasks.filter(t=>!t.done).length;
+  let open=tasks.filter(t=>!t.done);if(f&&f!=='all')open=open.filter(t=>t.type===f);
+  const groups={};open.forEach(t=>{(groups[t.pid]=groups[t.pid]||[]).push(t);});
+  const roleChip=r=>r==='Nurse'?'ch-t':r==='Physician'?'ch-b':r==='Educator'?'ch-p':'ch-s';
+  let html=Object.keys(groups).map(pid=>{const p=patients[pid],ts=groups[pid];return `<div style="border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><div><b>${p?p.en:'—'}</b> <span class="tag ${p?p.rk:''}" style="font-weight:600">${p?p.risk:''}</span> <span style="font-size:11px;color:var(--mu)">${p?p.file:''} · ${p?p.phc:''}</span></div><div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;color:var(--mu)">${ts.length} item${ts.length>1?'s':''}</span><button class="btn btn-o btn-xs" onclick="openPat(${pid})">Open patient</button></div></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${ts.map(t=>`<span class="chip ${roleChip(t.role)}" style="padding:5px 10px;gap:6px">${t.t} <span style="color:var(--grd);cursor:pointer;font-weight:700" title="Complete" onclick="completeTask(${tasks.indexOf(t)})">✓</span> <span style="color:var(--rd);cursor:pointer;font-weight:700" title="Dismiss" onclick="completeTask(${tasks.indexOf(t)})">✕</span></span>`).join('')}</div></div>`;}).join('');
+  document.getElementById('taskList').innerHTML=html||'<div class="note">No open tasks in this filter.</div>';
+  const o=tasks.filter(t=>!t.done).length,d=tasks.filter(t=>t.done).length;
+  document.getElementById('taskN').textContent=o;document.getElementById('taskDoneN')&&(document.getElementById('taskDoneN').textContent=d);document.getElementById('bTask').textContent=o;
 }
+function completeTask(i){tasks[i].done=true;renderTasks(activeTF());refreshMetrics();}
 function toggleTask(i){tasks[i].done=!tasks[i].done;renderTasks(activeTF());}
 
 /* ===== Virtual Clinic ===== */
@@ -665,13 +706,15 @@ function vcPick(i){vcSel=i;const c=consults[i],p=c.p;
     <div style="font-size:10px;font-weight:700;color:var(--mu);letter-spacing:.05em;margin-bottom:8px">POST-VACCINE SYMPTOM CHECK (AEFI)</div>
     <div class="aefi"><label><input type="checkbox" ${p.symptom==='Mild sore arm'?'checked':''}> Sore arm</label><label><input type="checkbox" ${p.symptom.includes('Fatigue')?'checked':''}> Fatigue</label><label><input type="checkbox" ${p.symptom==='Headache'?'checked':''}> Headache</label><label><input type="checkbox" ${p.symptom.includes('fever')?'checked':''}> Fever</label><label><input type="checkbox" ${p.symptom==='Myalgia'?'checked':''}> Muscle ache</label><label><input type="checkbox"> Rash / allergic</label></div>
     <div class="ai" style="margin-top:12px"><div class="ai-h"><div class="ai-ic">🤖</div><div><div class="ai-t">AI guidance</div><div class="ai-s">For this consult</div></div></div><div class="flag ${p.aefiFlag?'fY2':'fG2'}">${p.aefiFlag?'Symptoms are expected reactogenicity — reassure, advise paracetamol & fluids, safety-net for severe signs.':'No concerning symptoms — reinforce Dose 2 timing ('+p.schedule+').'}</div></div>
-    <div style="display:flex;gap:7px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-g btn-sm" onclick="toast('Reassurance sent ✓','Arabic message')">Send reassurance</button><button class="btn btn-o btn-sm" onclick="addTodo('Nurse call · ${p.en}')">Escalate to nurse</button><button class="btn btn-o btn-sm" onclick="toast('Dose 2 booked ✓')">Book Dose 2</button></div>`;
+    <div style="display:flex;gap:7px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-g btn-sm" onclick="toast('Reassurance sent ✓','Arabic message')">Send reassurance</button><button class="btn btn-o btn-sm" onclick="addTodo('Nurse call','call','Nurse',${p.id})">Escalate to nurse</button><button class="btn btn-o btn-sm" onclick="toast('Dose 2 booked ✓')">Book Dose 2</button></div>`;
   renderVC();}
 
 /* ===== Enrol wizard (live risk assessment) ===== */
 const WSTEPS=['Demographics','Risk & Immunity','Vaccination History','AI Review'];
-const wiz={step:1,name:'',mrn:'',age:'',sex:'Male',phc:PHCs[0].n,physician:PHCs[0].doc,coordinator:'Sarah Al-Ghamdi',nurse:'Mona Al-Zahrani',reason:'',cond:[],priorShingles:'no',priorVaccine:'no',hasD1:'no',d1date:''};
+const REASONS=['Eligible adult 50+','Immunocompromised adult 18+','Diabetic 50+ — elevated zoster risk','Cancer / chemotherapy patient','Organ transplant recipient','On immunosuppressive therapy','Caregiver referral','Post-shingles — prevent recurrence','Routine adult immunisation','Pharmacy / workplace referral'];
+const wiz={step:1,name:'',mrn:'',age:'',sex:'Male',phc:PHCs[0].n,coordinator:'Mona Al-Zahrani',reason:'',cond:[],priorShingles:'no',shinglesDate:'',priorVaccine:'no',zosterDate:'',zosterInfo:'',hasD1:'no',d1date:''};
 function setW(k,v){wiz[k]=v;updateLive();}
+function setWR(k,v){wiz[k]=v;renderWiz();}
 function toggleCond(k,el){if(el.checked){if(!wiz.cond.includes(k))wiz.cond.push(k);}else{wiz.cond=wiz.cond.filter(c=>c!==k);}updateLive();}
 function renderStepper(){document.getElementById('stepper').innerHTML=WSTEPS.map((s,i)=>{const n=i+1,cls=wiz.step>n?'done':wiz.step===n?'on':'';return `<div class="stp ${cls}"><div class="n">${wiz.step>n?'✓':n}</div><div class="lb">${s}</div></div>`+(i<3?`<div class="stp-ln ${wiz.step>n?'done':''}"></div>`:'');}).join('');}
 function updateLive(){const age=parseInt(wiz.age)||0;const a=RiskEngine.assess({age,cond:wiz.cond}),el=eligibility({age,cond:wiz.cond,caregiver:false});
@@ -686,17 +729,18 @@ function renderWiz(){
   if(wiz.step===1){
     h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="fsec" style="border:none;margin:0;padding:0">Patient demographics</div><button class="btn btn-o btn-xs" onclick="importRaqeem()">⬇ Import from Raqeem (NPHIES)</button></div>
     <div class="g2">${fld('Full name (English)',`<input value="${wiz.name}" oninput="setW('name',this.value)" placeholder="e.g. Mohammed Al-Otaibi">`)}${fld('MRN / National ID',`<input value="${wiz.mrn}" oninput="setW('mrn',this.value)" placeholder="SA-XXXX">`)}</div>
-    <div class="g3">${fld('Age',`<input type="number" min="18" max="110" value="${wiz.age}" oninput="setW('age',this.value)" placeholder="e.g. 62">`)}${fld('Sex',`<select onchange="setW('sex',this.value)"><option ${wiz.sex==='Male'?'selected':''}>Male</option><option ${wiz.sex==='Female'?'selected':''}>Female</option></select>`)}${fld('PHC centre',`<select onchange="setW('phc',this.value)">${PHCs.map(p=>`<option ${wiz.phc===p.n?'selected':''}>${p.n}</option>`).join('')}</select>`)}</div>
-    <div class="g3">${fld('Assigned physician',`<input value="${wiz.physician}" oninput="setW('physician',this.value)">`)}${fld('Care coordinator',`<input value="${wiz.coordinator}" oninput="setW('coordinator',this.value)">`)}${fld('Immunisation nurse',`<input value="${wiz.nurse}" oninput="setW('nurse',this.value)">`)}</div>
-    ${fld('Reason for enrolment',`<input value="${wiz.reason}" oninput="setW('reason',this.value)" placeholder="e.g. Eligible adult 50+, routine immunisation">`)}`;
+    <div class="g3">${fld('Age',`<select onchange="setW('age',this.value)"><option value="">— select —</option>${Array.from({length:83},(_,k)=>18+k).map(n=>`<option ${String(wiz.age)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`)}${fld('Sex',`<select onchange="setW('sex',this.value)"><option ${wiz.sex==='Male'?'selected':''}>Male</option><option ${wiz.sex==='Female'?'selected':''}>Female</option></select>`)}${fld('PHC centre',`<select onchange="setW('phc',this.value)">${PHCs.map(p=>`<option ${wiz.phc===p.n?'selected':''}>${p.n}</option>`).join('')}</select>`)}</div>
+    <div class="g2">${fld('Immunization coordinator',`<input value="${wiz.coordinator}" oninput="setW('coordinator',this.value)">`)}${fld('Reason for enrolment',`<input list="reasonList" value="${wiz.reason}" oninput="setW('reason',this.value)" placeholder="Type or pick…"><datalist id="reasonList">${REASONS.map(r=>`<option>${r}</option>`).join('')}</datalist>`)}</div>`;
   } else if(wiz.step===2){
     h=`<div class="fsec">Risk factors & immune status</div><div style="font-size:11px;color:var(--mu);margin-bottom:8px">Tick all that apply — immunocompromising conditions make a patient eligible from age 18.</div>
     <div class="med-grid">${Object.keys(COND).map(k=>`<label class="med"><input type="checkbox" ${wiz.cond.includes(k)?'checked':''} onchange="toggleCond('${k}',this)"><div><b>${COND[k].label}</b><small>${COND[k].imm?'Immunocompromising · eligible 18+':'Comorbidity · raises risk'}</small></div></label>`).join('')}</div>
-    <div class="g2" style="margin-top:12px">${fld('Had shingles before?',`<select onchange="setW('priorShingles',this.value)"><option value="no" ${wiz.priorShingles==='no'?'selected':''}>No</option><option value="yes" ${wiz.priorShingles==='yes'?'selected':''}>Yes</option></select>`)}${fld('Previous zoster vaccine?',`<select onchange="setW('priorVaccine',this.value)"><option value="no" ${wiz.priorVaccine==='no'?'selected':''}>No</option><option value="yes" ${wiz.priorVaccine==='yes'?'selected':''}>Yes</option></select>`)}</div>
+    <div class="g2" style="margin-top:12px">${fld('Had shingles before?',`<select onchange="setWR('priorShingles',this.value)"><option value="no" ${wiz.priorShingles==='no'?'selected':''}>No</option><option value="yes" ${wiz.priorShingles==='yes'?'selected':''}>Yes</option></select>`)}${wiz.priorShingles==='yes'?fld('When (approx)?',`<input type="date" value="${wiz.shinglesDate}" onchange="setW('shinglesDate',this.value)">`):'<div></div>'}</div>
+    <div class="g2">${fld('Previous zoster vaccine?',`<select onchange="setWR('priorVaccine',this.value)"><option value="no" ${wiz.priorVaccine==='no'?'selected':''}>No</option><option value="yes" ${wiz.priorVaccine==='yes'?'selected':''}>Yes</option></select>`)}${wiz.priorVaccine==='yes'?fld('Vaccine date',`<input type="date" value="${wiz.zosterDate}" onchange="setW('zosterDate',this.value)">`):'<div></div>'}</div>
+    ${wiz.priorVaccine==='yes'?fld('Which vaccine & where given',`<input value="${wiz.zosterInfo}" oninput="setW('zosterInfo',this.value)" placeholder="e.g. Zostavax · Al-Olaya PHC — helps time the next dose">`):''}
     <div class="note">Prior shingles or a previous vaccine do <b>not</b> remove eligibility — Shingrix is still recommended.</div>`;
   } else if(wiz.step===3){
     h=`<div class="fsec">Vaccination history</div>
-    <div class="g2">${fld('Received Dose 1?',`<select onchange="setW('hasD1',this.value)"><option value="no" ${wiz.hasD1==='no'?'selected':''}>No — not started</option><option value="yes" ${wiz.hasD1==='yes'?'selected':''}>Yes</option></select>`)}${fld('Dose 1 date (if any)',`<input value="${wiz.d1date}" oninput="setW('d1date',this.value)" placeholder="e.g. 14 Apr 2026">`)}</div>
+    <div class="g2">${fld('Received Dose 1?',`<select onchange="setWR('hasD1',this.value)"><option value="no" ${wiz.hasD1==='no'?'selected':''}>No — not started</option><option value="yes" ${wiz.hasD1==='yes'?'selected':''}>Yes</option></select>`)}${wiz.hasD1==='yes'?fld('Dose 1 date',`<input type="date" value="${wiz.d1date}" onchange="setW('d1date',this.value)">`):'<div></div>'}</div>
     <div class="note">Recommended schedule is set automatically: <b>2 doses, 2–6 months apart</b> (1–2 months for immunocompromised patients).</div>`;
   } else {
     const age=parseInt(wiz.age)||0,a=RiskEngine.assess({age,cond:wiz.cond}),el=eligibility({age,cond:wiz.cond,caregiver:false});
@@ -721,30 +765,46 @@ function enrolNow(){
   const rk=a.immuno?'SI':(wiz.cond.includes('diabetes')&&age>=50?'SD':'SG');
   const f=wiz.hasD1==='yes'?'d1':'none';const sm=statusMap(f,a.immuno,a.score);
   patients.push({id:i,n:wiz.name,en:wiz.name,file:wiz.mrn||('JSR-'+(204900+i)),sex:wiz.sex==='Female'?'F':'M',age,cond:wiz.cond.slice(),caregiver:false,
-    phc:wiz.phc,doc:wiz.physician,risk:a.immuno?'Immunocompromised':(wiz.cond.includes('diabetes')&&age>=50?'Diabetic 50+':'General 50+'),rk,ab:'av'+rk,
+    phc:wiz.phc,doc:(PHCs.find(x=>x.n===wiz.phc)||{}).doc||wiz.coordinator,coordinator:wiz.coordinator,risk:a.immuno?'Immunocompromised':(wiz.cond.includes('diabetes')&&age>=50?'Diabetic 50+':'General 50+'),rk,ab:'av'+rk,
     elig:el,score:a.score,tier:a.tier,drivers:a.drivers,schedule:a.schedule,immuno:a.immuno,
     f,st:sm.st,sb:sm.sb,pri:sm.pri,act:sm.act,d1:wiz.hasD1==='yes'?(wiz.d1date||'recent'):'—',d2:wiz.hasD1==='yes'?(a.immuno?'Schedule (short)':'Schedule'):'—',last:'Today',symptom:'—',aefiFlag:false,edu:{},disc:[]});
   renderReg();refreshMetrics();toast('Patient enrolled ✓',wiz.name+' · '+(wiz.mrn||'new MRN'));
   Object.assign(wiz,{step:1,name:'',mrn:'',age:'',cond:[],reason:'',hasD1:'no',d1date:''});renderWiz();show('registry');
 }
 
-/* ===== Patient Messages ===== */
-const convos=patients.filter(p=>['d2over','d1','caregiver'].includes(p.f)||p.aefiFlag).slice(0,6).map(p=>({p,un:Math.random()<.5?1:0,
-  thread:[{t:p.f==='d2over'?'تذكير ⏰ حان وقت جرعتك الثانية من شينجريكس.':p.aefiFlag?'كيف حالك بعد التطعيم؟ هل لديك أعراض؟':'مرحباً، بخصوص موعد جرعتك.',w:'in'},
-          {t:p.f==='d2over'?'متى أقدر آخذ الجرعة الثانية؟':p.aefiFlag?'عندي ألم بسيط في الذراع':'نعم، متى الموعد؟',w:'out'},
-          {t:p.aefiFlag?'هذا طبيعي ويزول خلال يوم أو يومين 🤍 إذا زاد الألم أو ظهرت حمى أخبرنا.':'الجرعة الثانية بعد '+(p.immuno?'شهر إلى شهرين':'شهرين إلى ستة أشهر')+'. سنرسل لك رابط الحجز.',w:'in'}]}));
-let curC=null;
-function renderInbox(){document.getElementById('inbox').innerHTML=convos.map((c,i)=>`<div class="conv ${curC===i?'sel':''}" onclick="openConv(${i})"><div class="av">${c.p.en.split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div style="min-width:0;flex:1"><div class="nm">${c.p.en}</div><div class="pv">${c.thread[c.thread.length-1].t}</div></div>${c.un?'<span class="un">'+c.un+'</span>':''}</div>`).join('');
-  document.getElementById('bMsg').textContent=convos.reduce((s,c)=>s+c.un,0);}
-function openConv(i){curC=i;convos[i].un=0;const c=convos[i];document.getElementById('thName').textContent=c.p.en+' · '+c.p.phc;
-  document.getElementById('tbody').innerHTML=c.thread.map(m=>`<div class="bub2 ${m.w==='in'?'bin':'bout'}">${m.t}</div>`).join('');renderInbox();
-  const tb=document.getElementById('tbody');tb.scrollTop=tb.scrollHeight;}
-function sendReply(){if(curC===null){toast('Select a conversation');return;}const i=document.getElementById('reply');if(!i.value.trim())return;convos[curC].thread.push({t:i.value,w:'in'});i.value='';openConv(curC);toast('Reply sent ✓');}
+
+/* ===== Patient Messages (compose + templates) ===== */
+const MSG_TPL=[
+ {k:'d1',label:'Dose 1 invite',ar:'السلام عليكم 👋 أنت مؤهل للقاح الحزام الناري (شينجريكس). نحجز لك جرعتك الأولى؟ احجز: 🔗 jusoor.health/shingrix',en:'Dose 1 invitation — eligible patient.'},
+ {k:'d2',label:'Dose 2 reminder',ar:'تذكير ⏰ حان وقت جرعتك الثانية من شينجريكس لإكمال الحماية. احجز: 🔗 jusoor.health/shingrix-d2',en:'Dose 2 reminder.'},
+ {k:'sym',label:'Post-vaccine check',ar:'كيف حالك بعد التطعيم؟ 🤍 ألم بسيط بالذراع أو تعب ليوم أو يومين أمر طبيعي. إذا ظهرت حمى عالية أو طفح تواصل معنا فوراً.',en:'Post-vaccine symptom check.'},
+ {k:'elig',label:'Eligibility info',ar:'لقاح الحزام الناري متاح لمن هم 50 سنة فأكثر، ولمن لديهم ضعف مناعة من عمر 18. هل ترغب بمعرفة إن كنت مؤهلاً؟',en:'Eligibility information.'},
+ {k:'care',label:'Caregiver outreach',ar:'هل ترعى أحد والديك أو شخصاً عمره 50 سنة فأكثر؟ 🤍 شاركنا رقمه وسيتصل به المنسق لترتيب التطعيم.',en:'Caregiver outreach.'},
+ {k:'book',label:'Booking confirmed',ar:'تم تأكيد موعد تطعيمك ✅ نراك في المركز. شكراً لاهتمامك بصحتك.',en:'Booking confirmation.'},
+];
+function renderMessages(){
+  document.getElementById('msgPtList').innerHTML=patients.map(p=>`<option value="${p.en} · ${p.file}">`).join('');
+  document.getElementById('msgTpl').innerHTML='<option value="">Choose template…</option>'+MSG_TPL.map((t,i)=>`<option value="${i}">${t.label}</option>`).join('');
+  document.getElementById('tplList').innerHTML=MSG_TPL.map((t,i)=>`<div onclick="pickTpl(${i})" style="border:1px solid var(--bdr);border-radius:9px;padding:10px 12px;margin-bottom:8px;cursor:pointer"><div style="font-size:12px;font-weight:700;color:var(--bl)">${t.label}</div><div class="ar" style="font-size:11px;color:var(--mu);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.ar}</div></div>`).join('');
+  document.getElementById('bMsg').textContent=patients.filter(p=>p.f==='d2over').length;
+}
+function applyTpl(){const i=document.getElementById('msgTpl').value;if(i==='')return;pickTpl(+i);}
+function pickTpl(i){document.getElementById('msgAr').value=MSG_TPL[i].ar;document.getElementById('msgEn').value=MSG_TPL[i].en;document.getElementById('msgTpl').value=i;}
+function aiMsg(){const v=document.getElementById('msgPt').value;const p=patients.find(x=>v&&v.includes(x.file))||patients.find(x=>v&&v.includes(x.en));
+  if(!p){toast('Pick a patient first');return;}
+  const msg=p.f==='d2over'?'عزيزي '+p.en+'، حان وقت جرعتك الثانية من شينجريكس. نحجز لك؟ 🔗 jusoor.health/shingrix-d2':p.aefiFlag?'نطمئن عليك بعد التطعيم — كيف حالك؟ إذا استمرت الأعراض أخبرنا.':p.immuno?'أنت مؤهل للقاح الحزام الناري وبجدول أسرع للجرعة الثانية. نحجز لك؟':'أنت مؤهل للقاح الحزام الناري. نحجز لك جرعتك الأولى؟';
+  document.getElementById('msgAr').value=msg;document.getElementById('msgEn').value='AI-generated for '+p.en+' ('+p.st+')';toast('AI generated ✓',p.en);}
+function sendMsg(){if(!document.getElementById('msgAr').value.trim()){toast('Write a message first');return;}toast('Message sent ✓','via WhatsApp / SMS');document.getElementById('msgAr').value='';document.getElementById('msgEn').value='';document.getElementById('msgTpl').value='';}
 
 /* ===== Education ===== */
 function renderEdu(){
-  document.getElementById('eduTopics').innerHTML=EDU.map(t=>{const pct=Math.round(patients.filter(p=>p.edu[t]).length/patients.length*100);return `<div class="card cp"><div style="font-size:12px;font-weight:700">${t}</div><div style="font-size:20px;font-weight:900;margin:6px 0 2px">${pct}%</div><div style="font-size:10px;color:var(--mu)">of cohort educated</div><div class="edubar"><i style="width:${pct}%"></i></div></div>`;}).join('');
-  document.getElementById('eduBody').innerHTML=patients.slice(0,18).map(p=>`<tr onclick="openPat(${p.id})"><td style="font-weight:600">${p.en}</td>${EDU.map(t=>`<td>${p.edu[t]?'<span class="chip ch-g">✓</span>':'<span class="chip ch-s">–</span>'}</td>`).join('')}</tr>`).join('');
+  document.getElementById('eduPtList').innerHTML=patients.map(p=>`<option value="${p.en} · ${p.file}">`).join('');
+  const reached=patients.filter(p=>EDU.some(t=>p.edu[t])).length,pending=patients.filter(p=>!EDU.every(t=>p.edu[t])).length;
+  document.getElementById('eduCase').textContent=patients.length;
+  document.getElementById('eduSessions').textContent=reached;
+  document.getElementById('eduGoals').textContent=Math.round(reached*0.4);
+  document.getElementById('eduPending').textContent=pending;
+  document.getElementById('eduBody').innerHTML=patients.slice(0,20).map(p=>{const done=EDU.filter(t=>p.edu[t]).length,pct=Math.round(done/EDU.length*100);return `<tr onclick="openPat(${p.id})"><td style="font-weight:600">${p.en}</td><td><span class="tag ${p.rk}">${p.risk}</span></td>${EDU.map(t=>`<td>${p.edu[t]?'<span class="chip ch-g">✓</span>':'<span style="color:var(--su)">○</span>'}</td>`).join('')}<td><div style="display:flex;align-items:center;gap:6px"><div class="edubar" style="width:54px;flex-shrink:0"><i style="width:${pct}%"></i></div><span style="font-size:11px;color:var(--mu)">${pct}%</span></div></td></tr>`;}).join('');
 }
 
 /* ===== Patient modal ===== */
@@ -821,23 +881,27 @@ function saveAI(){AI_ENGINE.endpoint=document.getElementById('setEndpoint').valu
 
 /* ===== Charts ===== */
 Chart.defaults.font.family='system-ui';Chart.defaults.color='#6b7280';Chart.defaults.font.size=11;
-new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'],datasets:[{label:'Dose 1',data:[280,540,820,1120,1410,1680,1890,2061],borderColor:'#378add',backgroundColor:'rgba(55,138,221,.1)',fill:true,tension:.4},{label:'Complete',data:[80,210,380,560,760,960,1120,1247],borderColor:'#5aaa1e',backgroundColor:'rgba(90,170,30,.1)',fill:true,tension:.4}]},options:{plugins:{legend:{labels:{boxWidth:11}}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'}}}}});
-new Chart(document.getElementById('segChart'),{type:'doughnut',data:{labels:['Diabetic 50+','Immunocompromised','General 50+'],datasets:[{data:[patients.filter(p=>p.rk==='SD').length,patients.filter(p=>p.rk==='SI').length,patients.filter(p=>p.rk==='SG').length],backgroundColor:['#378add','#7c4dff','#8a98a8'],borderColor:'#fff',borderWidth:3}]},options:{cutout:'60%',plugins:{legend:{position:'bottom',labels:{boxWidth:11,padding:11}}}}});
+new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'],datasets:[{label:'Dose 1',data:[280,540,820,1120,1410,1680,1890,2061],borderColor:'#378add',backgroundColor:'rgba(55,138,221,.1)',fill:true,tension:.4},{label:'Complete',data:[80,210,380,560,760,960,1120,1247],borderColor:'#5aaa1e',backgroundColor:'rgba(90,170,30,.1)',fill:true,tension:.4}]},options:{maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:11}}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'}}}}});
+new Chart(document.getElementById('segChart'),{type:'doughnut',data:{labels:['Diabetic 50+','Immunocompromised','General 50+'],datasets:[{data:[patients.filter(p=>p.rk==='SD').length,patients.filter(p=>p.rk==='SI').length,patients.filter(p=>p.rk==='SG').length],backgroundColor:['#378add','#7c4dff','#8a98a8'],borderColor:'#fff',borderWidth:3}]},options:{maintainAspectRatio:false,cutout:'60%',onClick:(e,els)=>{if(els.length)showCohort('Risk segment',patients.filter(p=>p.rk===['SD','SI','SG'][els[0].index]));},plugins:{legend:{position:'bottom',labels:{boxWidth:11,padding:11}}}}});
 new Chart(document.getElementById('barrierChart'),{type:'bar',data:{labels:['Safety fear','Complacency','Side-effect worry','Access','Already had it','Ask doctor','Dose-2 lapse'],datasets:[{label:'% of declines',data:[31,24,18,15,12,9,7],backgroundColor:['#e24b4a','#ef9f27','#378add','#1d9e75','#7c4dff','#5aaa1e','#9ca3af']}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#eef0f4'}},y:{grid:{display:false}}}}});
 
+/* click a chart → drill into the patient list */
+function showCohort(title,arr){document.getElementById('pmT').textContent=title+' · '+arr.length+' patient'+(arr.length===1?'':'s');
+  document.getElementById('pmB').innerHTML=arr.length?arr.map(p=>`<div class="rq" onclick="openPat(${p.id})"><div class="rq-dot ${p.pri==='wU'?'s-ov':p.pri==='wM'?'s-due':'s-ok'}"></div><div style="flex:1"><div class="rq-n">${p.en} <span class="tag ${p.rk}" style="font-weight:600">${p.risk}</span></div><div class="rq-d">${p.age}y · ${p.file} · ${p.st} · ${p.phc}</div></div>${scorePill(p)}</div>`).join(''):'<div class="note">No patients in this group.</div>';
+  document.getElementById('patModal').classList.add('open');}
 /* dashboard population charts */
 (function(){
  const band=[0,0,0,0];patients.forEach(p=>{const s=p.caregiver?10:p.score;if(s<30)band[0]++;else if(s<50)band[1]++;else if(s<70)band[2]++;else band[3]++;});
- new Chart(document.getElementById('riskDistChart'),{type:'bar',data:{labels:['Low <30','Moderate 30–49','High 50–69','Very high 70+'],datasets:[{label:'Patients',data:band,backgroundColor:['#5aaa1e','#378add','#ef9f27','#e24b4a']}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'}}}}});
+ new Chart(document.getElementById('riskDistChart'),{type:'bar',data:{labels:['Low <30','Moderate 30–49','High 50–69','Very high 70+'],datasets:[{label:'Patients',data:band,backgroundColor:['#5aaa1e','#378add','#ef9f27','#e24b4a']}]},options:{onClick:(e,els)=>{if(els.length){const i=els[0].index;showCohort('Risk band',patients.filter(p=>{const s=p.caregiver?10:p.score;return i===0?s<30:i===1?(s>=30&&s<50):i===2?(s>=50&&s<70):s>=70;}));}},plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'}}}}});
  const profs=['SD','SI','SG'],tiers={High:[0,0,0],Moderate:[0,0,0],Low:[0,0,0]};
  patients.forEach(p=>{const j=profs.indexOf(p.rk);if(j<0)return;const t=(p.tier==='High'||p.tier==='Very High')?'High':p.tier==='Moderate'?'Moderate':'Low';tiers[t][j]++;});
- new Chart(document.getElementById('stratChart'),{type:'bar',data:{labels:['Diabetic 50+','Immunocompromised','General 50+'],datasets:[{label:'High',data:tiers.High,backgroundColor:'#e24b4a'},{label:'Moderate',data:tiers.Moderate,backgroundColor:'#ef9f27'},{label:'Low',data:tiers.Low,backgroundColor:'#5aaa1e'}]},options:{plugins:{legend:{labels:{boxWidth:11}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'#eef0f4'}}}}});
+ new Chart(document.getElementById('stratChart'),{type:'bar',data:{labels:['Diabetic 50+','Immunocompromised','General 50+'],datasets:[{label:'High',data:tiers.High,backgroundColor:'#e24b4a'},{label:'Moderate',data:tiers.Moderate,backgroundColor:'#ef9f27'},{label:'Low',data:tiers.Low,backgroundColor:'#5aaa1e'}]},options:{maintainAspectRatio:false,onClick:(e,els)=>{if(els.length){const prof=['SD','SI','SG'][els[0].index],tn=['High','Moderate','Low'][els[0].datasetIndex];showCohort('Risk stratification',patients.filter(p=>{if(p.rk!==prof)return false;const t=(p.tier==='High'||p.tier==='Very High')?'High':p.tier==='Moderate'?'Moderate':'Low';return t===tn;}));}},plugins:{legend:{labels:{boxWidth:11}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'#eef0f4'}}}}});
  const sc={none:0,d1:0,d2win:0,d2over:0,done:0,caregiver:0};patients.forEach(p=>sc[p.f]++);
- new Chart(document.getElementById('statusChart'),{type:'bar',data:{labels:['No dose','Dose 1','D2 window','D2 overdue','Complete','Caregiver'],datasets:[{label:'Patients',data:[sc.none,sc.d1,sc.d2win,sc.d2over,sc.done,sc.caregiver],backgroundColor:['#9ca3af','#378add','#ef9f27','#e24b4a','#5aaa1e','#7c4dff']}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'}}}}});
+ new Chart(document.getElementById('statusChart'),{type:'bar',data:{labels:['No dose','Dose 1','D2 window','D2 overdue','Complete','Caregiver'],datasets:[{label:'Patients',data:[sc.none,sc.d1,sc.d2win,sc.d2over,sc.done,sc.caregiver],backgroundColor:['#9ca3af','#378add','#ef9f27','#e24b4a','#5aaa1e','#7c4dff']}]},options:{onClick:(e,els)=>{if(els.length)showCohort('Dose status',patients.filter(p=>p.f===['none','d1','d2win','d2over','done','caregiver'][els[0].index]));},plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'}}}}});
  const cn=PHCs.map(x=>x.n),tot={},vac={};cn.forEach(n=>{tot[n]=0;vac[n]=0;});patients.forEach(p=>{tot[p.phc]=(tot[p.phc]||0)+1;if(['done','d1','d2win','d2over'].includes(p.f))vac[p.phc]=(vac[p.phc]||0)+1;});
- new Chart(document.getElementById('centreChart'),{type:'bar',data:{labels:cn.map(n=>n.split(',')[0]),datasets:[{label:'Dose 1 %',data:cn.map(n=>tot[n]?Math.round((vac[n]||0)/tot[n]*100):0),backgroundColor:'#378add'}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'},max:100}}}});
+ new Chart(document.getElementById('centreChart'),{type:'bar',data:{labels:cn.map(n=>n.split(',')[0]),datasets:[{label:'Dose 1 %',data:cn.map(n=>tot[n]?Math.round((vac[n]||0)/tot[n]*100):0),backgroundColor:'#378add'}]},options:{onClick:(e,els)=>{if(els.length)showCohort('PHC centre',patients.filter(p=>p.phc===PHCs[els[0].index].n));},plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#eef0f4'},max:100}}}});
  const eg=[patients.filter(p=>p.elig.ok).length,patients.filter(p=>p.caregiver).length,patients.filter(p=>!p.elig.ok&&!p.caregiver).length];
- new Chart(document.getElementById('eligChart'),{type:'doughnut',data:{labels:['Eligible','Caregiver','Not eligible'],datasets:[{data:eg,backgroundColor:['#5aaa1e','#7c4dff','#9ca3af'],borderColor:'#fff',borderWidth:3}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}}}});
+ new Chart(document.getElementById('eligChart'),{type:'doughnut',data:{labels:['Eligible','Caregiver','Not eligible'],datasets:[{data:eg,backgroundColor:['#5aaa1e','#7c4dff','#9ca3af'],borderColor:'#fff',borderWidth:3}]},options:{onClick:(e,els)=>{if(els.length){const i=els[0].index;showCohort('Eligibility',patients.filter(p=>i===0?(p.elig.ok&&!p.caregiver):i===1?p.caregiver:(!p.elig.ok&&!p.caregiver)));}},cutout:'58%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}}}});
 })();
 
 /* ===== Compose ===== */
@@ -877,8 +941,7 @@ const B={start(){chat.innerHTML='';typing(()=>{add('أهلاً بك 👋 أنا 
 function botRestart(){B._im=false;B.start();}
 
 /* ===== init ===== */
-renderReg();refreshMetrics();renderHuddle();renderTasks('all');renderVC();renderInbox();renderEdu();pickSeg(0);botRestart();renderWiz();restoreSession();
-if(convos.length)openConv(0);
+renderReg();refreshMetrics();renderHuddle();renderTasks('all');renderVC();renderMessages();renderEdu();pickSeg(0);botRestart();renderWiz();restoreSession();
 </script>
 </body>
 </html>
