@@ -408,7 +408,7 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
     </div>
     <div><div class="card cp" style="margin-bottom:14px"><div class="ct" style="margin-bottom:10px">Live bot stats · today</div>
       <div class="sc"><b>Conversations started</b><span class="m">1,184</span></div><div class="sc"><b>Eligibility confirmed</b><span class="m">921</span></div><div class="sc"><b>Registration links sent</b><span class="m">734</span></div><div class="sc"><b>Caregiver numbers captured</b><span class="m">73</span></div><div class="sc"><b>Symptom reports triaged</b><span class="m">58</span></div></div>
-      <div class="ai"><div class="ai-h"><div class="ai-ic">💬</div><div><div class="ai-t">Bot intelligence</div><div class="ai-s">What the engine handles</div></div></div><div class="flag fG2">Eligibility: 50+ for all · 18+ if immunocompromised</div><div class="flag fY2">Auto-offers shorter 1–2 month Dose 2 to immunocompromised</div><div class="flag fG2">Triages post-vaccine symptoms; escalates severe to nurse</div></div></div>
+      <div class="ai"><div class="ai-h"><div class="ai-ic">💬</div><div><div class="ai-t">Bot intelligence</div><div class="ai-s">What the engine handles</div></div></div><div class="flag fG2">Eligibility: 50+ for all · 18+ if immunocompromised</div><div class="flag fY2">Auto-offers shorter 1–2 month Dose 2 to immunocompromised</div><div class="flag fG2">Handles concerns (cost · pain · time · need) and offers booking</div><div class="flag fY2">Promises 3-day &amp; 2-day pre-visit reminders; chases Dose 2</div><div class="flag fG2">Triages post-vaccine symptoms; escalates severe to nurse</div></div></div>
   </div>
   <div class="card cp" style="margin-top:14px"><div class="ch"><div><div class="ct">Local knowledge base — what the bot can answer</div><div class="cs">Curated Shingrix Q&amp;A served on-device · 🔒 no patient data leaves Saudi Arabia · an external LLM can optionally be linked in Settings for open-ended questions</div></div></div><div id="botKB"></div></div>
 </div>
@@ -486,6 +486,16 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
       <div class="set-row"><div><div class="n">Symptom follow-up</div><div class="d">Auto-message patients after each dose</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
       <div class="set-row"><div><div class="n">Auto-escalate severe symptoms</div><div class="d">High fever, rash, allergic reaction → nurse call</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
       <div class="fg" style="margin-top:10px"><label>Follow-up timing (days after dose)</label><select><option>Day 1 and Day 3</option><option>Day 3 only</option><option>Day 1, 3 and 7</option></select></div>
+    </div>
+    <div class="card cp"><div class="ct" style="margin-bottom:12px">WhatsApp reminder cadence</div>
+      <div class="set-row"><div><div class="n">Eligibility invite + info</div><div class="d">On identification from registry or the bot</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
+      <div class="set-row"><div><div class="n">Booking confirmation</div><div class="d">Sent the moment a slot is booked</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
+      <div class="set-row"><div><div class="n">Pre-visit reminders</div><div class="d">Automatic 3 days and 2 days before the appointment</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
+      <div class="set-row"><div><div class="n">Dose 2 due reminder</div><div class="d">When the 2–6 month window opens (1–2 mo if immunocompromised)</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
+      <div class="set-row"><div><div class="n">Dose 2 overdue recall</div><div class="d">Gentle recall until the two-dose series is complete</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
+      <div class="fg" style="margin-top:10px"><label>Cadence preset</label><select><option>Invite → info → booking → 3 days → 2 days → Dose 2 due → overdue recall</option><option>Booking → 2 days before → Dose 2 only</option></select></div>
+      <div class="note" style="margin-top:8px">WhatsApp fires automatically along this sequence. Dose-2 completion is the biggest coverage lever for a two-dose vaccine.</div>
+      <button class="btn btn-p btn-sm" style="margin-top:10px" onclick="toast('Reminder cadence saved ✓','3-day + 2-day pre-visit · Dose 2 recall on')">Save cadence</button>
     </div>
     <div class="card cp"><div class="ct" style="margin-bottom:12px">Integrations (Saudi)</div>
       <div class="set-row"><div><div class="n">Sehhaty booking</div><div class="d">Appointment deep-link</div></div><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></div>
@@ -845,12 +855,20 @@ function enrolNow(){
 
 /* ===== Patient Messages (compose + templates) ===== */
 const MSG_TPL=[
- {k:'d1',label:'Dose 1 invite',ar:'السلام عليكم 👋 أنت مؤهل للقاح الحزام الناري (شينجريكس). نحجز لك جرعتك الأولى؟ احجز: 🔗 jusoor.health/shingrix',en:'Dose 1 invitation — eligible patient.'},
- {k:'d2',label:'Dose 2 reminder',ar:'تذكير ⏰ حان وقت جرعتك الثانية من شينجريكس لإكمال الحماية. احجز: 🔗 jusoor.health/shingrix-d2',en:'Dose 2 reminder.'},
- {k:'sym',label:'Post-vaccine check',ar:'كيف حالك بعد التطعيم؟ 🤍 ألم بسيط بالذراع أو تعب ليوم أو يومين أمر طبيعي. إذا ظهرت حمى عالية أو طفح تواصل معنا فوراً.',en:'Post-vaccine symptom check.'},
- {k:'elig',label:'Eligibility info',ar:'لقاح الحزام الناري متاح لمن هم 50 سنة فأكثر، ولمن لديهم ضعف مناعة من عمر 18. هل ترغب بمعرفة إن كنت مؤهلاً؟',en:'Eligibility information.'},
- {k:'care',label:'Caregiver outreach',ar:'هل ترعى أحد والديك أو شخصاً عمره 50 سنة فأكثر؟ 🤍 شاركنا رقمه وسيتصل به المنسق لترتيب التطعيم.',en:'Caregiver outreach.'},
- {k:'book',label:'Booking confirmed',ar:'تم تأكيد موعد تطعيمك ✅ نراك في المركز. شكراً لاهتمامك بصحتك.',en:'Booking confirmation.'},
+ {k:'d1',label:'① Dose 1 invite',ar:'السلام عليكم 👋 من برنامج جسور للتطعيم بالتعاون مع GSK. أنت مؤهل للقاح الحزام الناري (شينجريكس) الذي يقي بإذن الله من الحزام الناري وآلامه العصبية المزمنة. نحجز لك جرعتك الأولى؟ 🔗 jusoor.health/shingrix',en:'Dose 1 invitation — eligible patient.'},
+ {k:'elig',label:'Eligibility info',ar:'لقاح الحزام الناري متاح لمن هم ٥٠ سنة فأكثر، ولمن لديهم ضعف مناعة من عمر ١٨. جرعتان تمنحان حماية تتجاوز ٩٠٪. هل تحب أن نتحقق من أهليتك ونحجز لك؟',en:'Eligibility information.'},
+ {k:'book',label:'② Booking confirmed',ar:'تم تأكيد موعدك ✅ نراك في المركز. سنرسل لك تذكيراً قبل الموعد بـ٣ أيام ثم بيومين. شكراً لحرصك على صحتك 🤍',en:'Booking confirmation + reminder promise.'},
+ {k:'r3',label:'③ Reminder · 3 days before',ar:'تذكير ⏰ موعد تطعيمك ضد الحزام الناري بعد ٣ أيام. إن رغبت بتغيير الموعد أخبرنا ونرتّبه لك بكل سهولة 🤍',en:'Reminder — 3 days before appointment.'},
+ {k:'r2',label:'④ Reminder · 2 days before',ar:'تذكير ⏰ بقي يومان على موعد تطعيمك. ننصح بأخذ اللقاح في وقته لأفضل حماية. نراك قريباً 🤍',en:'Reminder — 2 days before appointment.'},
+ {k:'d2',label:'⑤ Dose 2 due',ar:'حان وقت جرعتك الثانية من شينجريكس لإكمال الحماية الكاملة 💉 (تُعطى بعد شهرين إلى ٦ أشهر من الأولى). نحجز لك؟ 🔗 jusoor.health/shingrix-d2',en:'Dose 2 due — window open.'},
+ {k:'d2over',label:'⑥ Dose 2 overdue · recall',ar:'نفتقد إكمال حمايتك 🤍 جرعتك الثانية من شينجريكس متأخرة، ولا داعي للبدء من جديد — جرعة واحدة تكمل الحماية بإذن الله. نحجز لك هذا الأسبوع؟ 🔗 jusoor.health/shingrix-d2',en:'Dose 2 overdue — gentle recall.'},
+ {k:'flu',label:'Co-administer with flu',ar:'يمكنك أخذ لقاح الحزام الناري مع لقاح الإنفلونزا في نفس الزيارة (بموضعين مختلفين) — زيارة واحدة وحماية مضاعفة. نرتّب لك؟',en:'Co-administration with influenza vaccine.'},
+ {k:'cost',label:'Cost / coverage',ar:'التطعيم متاح للمؤهلين ضمن البرنامج، وسيوضح لك المنسق التغطية والتفاصيل. لا تدع التكلفة تمنعك — تواصل معنا 🤍',en:'Cost/coverage reassurance.'},
+ {k:'pain',label:'Pain / side-effects reassurance',ar:'من الطبيعي الشعور بألم بسيط بالذراع أو تعب ليوم أو يومين بعد التطعيم، وهي علامة أن جسمك يبني المناعة، وتزول سريعاً. نحن معك لأي استفسار 🤍',en:'Reactogenicity reassurance.'},
+ {k:'sym',label:'Post-vaccine · Day 1',ar:'كيف حالك بعد التطعيم؟ 🤍 ألم بالذراع أو تعب ليوم أو يومين أمر طبيعي. إذا ظهرت حمى عالية أو طفح أو صعوبة تنفس تواصل معنا فوراً.',en:'Post-vaccine symptom check — Day 1.'},
+ {k:'sym3',label:'Post-vaccine · Day 3',ar:'مرّت ٣ أيام على تطعيمك — نطمئن عليك 🤍 إن استمرت الأعراض أو ازدادت أخبرنا ونساعدك.',en:'Post-vaccine symptom check — Day 3.'},
+ {k:'care',label:'Caregiver outreach',ar:'هل ترعى أحد والديك أو شخصاً عمره ٥٠ سنة فأكثر؟ 🤍 شاركنا رقمه وسيتصل به المنسق لترتيب تطعيمه ضد الحزام الناري.',en:'Caregiver outreach for an elderly relative.'},
+ {k:'done',label:'Series complete 🎉',ar:'أكملت جرعتيك ✅ حماية كاملة بإذن الله ضد الحزام الناري. شكراً لحرصك على صحتك — نحن معك لأي استفسار مستقبلي 🤍',en:'Two-dose series complete.'},
 ];
 function renderMessages(){
   document.getElementById('msgPtList').innerHTML=patients.map(p=>`<option value="${p.en} · ${p.file}">`).join('');
@@ -862,7 +880,7 @@ function applyTpl(){const i=document.getElementById('msgTpl').value;if(i==='')re
 function pickTpl(i){document.getElementById('msgAr').value=MSG_TPL[i].ar;document.getElementById('msgEn').value=MSG_TPL[i].en;document.getElementById('msgTpl').value=i;}
 function aiMsg(){const v=document.getElementById('msgPt').value;const p=patients.find(x=>v&&v.includes(x.file))||patients.find(x=>v&&v.includes(x.en));
   if(!p){toast('Pick a patient first');return;}
-  const msg=p.f==='d2over'?'عزيزي '+p.en+'، حان وقت جرعتك الثانية من شينجريكس. نحجز لك؟ 🔗 jusoor.health/shingrix-d2':p.aefiFlag?'نطمئن عليك بعد التطعيم — كيف حالك؟ إذا استمرت الأعراض أخبرنا.':p.immuno?'أنت مؤهل للقاح الحزام الناري وبجدول أسرع للجرعة الثانية. نحجز لك؟':'أنت مؤهل للقاح الحزام الناري. نحجز لك جرعتك الأولى؟';
+  const msg=p.f==='d2over'?'عزيزي '+p.en+' 🤍 نفتقد إكمال حمايتك — جرعتك الثانية من شينجريكس متأخرة، ولا داعي للبدء من جديد، جرعة واحدة تكملها. نحجز لك هذا الأسبوع؟ 🔗 jusoor.health/shingrix-d2':p.aefiFlag?'عزيزي '+p.en+'، نطمئن عليك بعد التطعيم — كيف حالك؟ إذا استمرت الأعراض أو ازدادت أخبرنا ونساعدك 🤍':p.immuno?'عزيزي '+p.en+'، أنت مؤهل للقاح الحزام الناري وبجدول أسرع للجرعة الثانية (شهر–شهرين). نحجز لك؟ ويمكن أخذه مع لقاح الإنفلونزا في نفس الزيارة.':'عزيزي '+p.en+'، أنت مؤهل للقاح الحزام الناري الذي يقي من آلامه المزمنة. نحجز لك جرعتك الأولى؟ وسنذكّرك قبل الموعد بـ٣ أيام ثم بيومين.';
   document.getElementById('msgAr').value=msg;document.getElementById('msgEn').value='AI-generated for '+p.en+' ('+p.st+')';toast('AI generated ✓',p.en);}
 function sendMsg(){if(!document.getElementById('msgAr').value.trim()){toast('Write a message first');return;}toast('Message sent ✓','via WhatsApp / SMS');document.getElementById('msgAr').value='';document.getElementById('msgEn').value='';document.getElementById('msgTpl').value='';}
 
@@ -1061,7 +1079,7 @@ function tm(){const d=new Date();return d.getHours()+':'+String(d.getMinutes()).
 function add(t,w){const m=document.createElement('div');m.className='msg '+w;m.innerHTML=t+'<span class="tm">'+tm()+'</span>';chat.appendChild(m);chat.scrollTop=chat.scrollHeight;}
 function setOpts(a){opts.innerHTML='';a.forEach(o=>{const b=document.createElement('button');b.textContent=o.t;b.onclick=()=>{add(o.t,'user');opts.innerHTML='';setTimeout(o.go,400);};opts.appendChild(b);});}
 function typing(cb){const m=document.createElement('div');m.className='msg bot';m.textContent='…';chat.appendChild(m);chat.scrollTop=chat.scrollHeight;setTimeout(()=>{m.remove();cb();},460);}
-const B={start(){chat.innerHTML='';typing(()=>{add('أهلاً بك 👋 أنا مساعد جسور للتطعيم بالتعاون مع GSK.','bot');typing(()=>{add('هل هذا التسجيل لك أم لشخص ترعاه؟','bot');setOpts([{t:'لي',go:B.age},{t:'لشخص أرعاه',go:B.care}]);});});},
+const B={start(){chat.innerHTML='';typing(()=>{add('أهلاً وسهلاً 👋 أنا مساعد جسور للتطعيم بالتعاون مع GSK، وأساعدك في الوقاية من الحزام الناري وآلامه المزمنة.','bot');typing(()=>{add('هل هذا التسجيل لك أم لشخص ترعاه؟','bot');setOpts([{t:'لي',go:B.age},{t:'لشخص أرعاه',go:B.care}]);});});},
  age(){typing(()=>{add('كم عمرك؟','bot');setOpts([{t:'50 أو أكثر',go:()=>B.elig(false)},{t:'18–49',go:B.under},{t:'أقل من 18',go:B.young}]);});},
  under(){typing(()=>{add('هل لديك نقص مناعة أو تتناول أدوية مثبطة؟','bot');setOpts([{t:'نعم',go:()=>B.elig(true)},{t:'لا',go:B.no}]);});},
  young(){typing(()=>{add('اللقاح لمن هم 18+ (نقص مناعة) أو 50+. هل ترعى شخصاً مؤهلاً؟','bot');setOpts([{t:'نعم',go:B.care},{t:'لا',go:B.end}]);});},
@@ -1071,12 +1089,14 @@ const B={start(){chat.innerHTML='';typing(()=>{add('أهلاً بك 👋 أنا 
  careSelf(){typing(()=>{add('بالنيابة عمّن ترعاه — كم عمره؟','bot');setOpts([{t:'50 أو أكثر',go:()=>B.elig(false)},{t:'18–49',go:B.under},{t:'أقل من 18',go:B.young}]);});},
  elig(im){typing(()=>{add(im?'أنت مؤهل ✅ وسنوفر جدولاً أسرع.':'ممتاز ✅ أنت مؤهل.','bot');B._im=im;typing(()=>{add('هل أخذت الجرعة الأولى؟','bot');setOpts([{t:'نعم',go:B.when},{t:'لا',go:B.reg}]);});});},
  when(){typing(()=>{add('متى تقريباً؟','bot');setOpts([{t:'منذ أكثر من شهرين',go:B.due},{t:'منذ أقل',go:B.wait}]);});},
- due(){typing(()=>{add('حان وقت الجرعة الثانية ✅ احجز: 🔗 jusoor.health/shingrix-d2','bot');botTask('WhatsApp lead — overdue Dose 2, confirm booking');B.sym();});},
- wait(){typing(()=>{add('ممتاز 👏 سنذكّرك عند موعد الجرعة الثانية ('+(B._im?'شهر–شهرين':'شهرين–٦ أشهر')+').','bot');B.sym();});},
- reg(){typing(()=>{add('لنبدأ بحجز جرعتك الأولى 💉 احجز: 🔗 jusoor.health/shingrix','bot');botTask('New WhatsApp lead — book Dose 1');B.thx();});},
+ due(){typing(()=>{add('حان وقت الجرعة الثانية ✅ جرعة واحدة تكمل حمايتك بإذن الله. احجز: 🔗 jusoor.health/shingrix-d2 — وسنذكّرك قبل الموعد بـ٣ أيام ثم بيومين.','bot');botTask('WhatsApp lead — overdue Dose 2, confirm booking');B.sym();});},
+ wait(){typing(()=>{add('ممتاز 👏 سنذكّرك عند فتح موعد الجرعة الثانية ('+(B._im?'شهر–شهرين':'شهرين–٦ أشهر')+')، ونرسل تذكيراً قبل الموعد بـ٣ أيام ثم بيومين.','bot');B.sym();});},
+ reg(){typing(()=>{add('لنبدأ بحجز جرعتك الأولى 💉 احجز: 🔗 jusoor.health/shingrix — وسنرسل لك تذكيراً قبل الموعد بـ٣ أيام ثم بيومين. ويمكن أخذه مع لقاح الإنفلونزا في نفس الزيارة.','bot');botTask('New WhatsApp lead — book Dose 1');B.thx();});},
  sym(){typing(()=>{add('بعد التطعيم، إذا شعرت بألم بالذراع أو تعب فهذا طبيعي. هل تريد متابعة الأعراض؟','bot');setOpts([{t:'نعم',go:B.symY},{t:'لا، شكراً',go:B.end}]);});},
  symY(){typing(()=>{add('سنرسل لك رسالة بعد ٣ أيام للاطمئنان 🤍 وإذا ظهرت حمى عالية أو طفح تواصل معنا فوراً.','bot');botTask('WhatsApp symptom follow-up in 3 days');B.end();});},
- thx(){typing(()=>{add('هل لديك سؤال آخر؟ 😊','bot');setOpts([{t:'أسئلة شائعة',go:B.faqMenu},{t:'هل اللقاح آمن؟',go:B.safe},{t:'لا، شكراً',go:B.end}]);});},
+ thx(){typing(()=>{add('هل لديك سؤال آخر؟ 😊','bot');setOpts([{t:'أسئلة شائعة',go:B.faqMenu},{t:'عندي تحفّظ',go:B.barriers},{t:'هل اللقاح آمن؟',go:B.safe},{t:'لا، شكراً',go:B.end}]);});},
+ barriers(){typing(()=>{add('نتفهّم تحفّظك تماماً 🤍 ما الذي يشغلك أكثر؟','bot');setOpts([{t:'التكلفة',go:()=>B.bar('cost')},{t:'الألم/الأعراض',go:()=>B.bar('pain')},{t:'الوقت/الانشغال',go:()=>B.bar('time')},{t:'لست متأكداً أني بحاجته',go:()=>B.bar('need')}]);});},
+ bar(k){const M={cost:'التطعيم متاح للمؤهلين ضمن البرنامج، وسيوضح لك المنسق التغطية. لا تدع التكلفة تمنعك عن الحماية 🤍',pain:'الأعراض بسيطة عادةً (ألم بالذراع أو تعب ليوم أو يومين) وهي علامة بناء المناعة، وتزول سريعاً.',time:'الموعد قصير، ويمكن أخذه مع لقاح الإنفلونزا في نفس الزيارة — زيارة واحدة فقط. نرتّب لك وقتاً مناسباً.',need:'الحزام الناري مؤلم جداً وقد يترك ألماً عصبياً مزمناً لأشهر. اللقاح فعّال أكثر من ٩٠٪ ويقيك بإذن الله، خاصةً بعد عمر الخمسين.'};typing(()=>{add(M[k],'bot');botTask('WhatsApp barrier ('+k+') — reassured, offered booking');setOpts([{t:'حسناً، احجزوا لي',go:B.reg},{t:'سؤال آخر',go:B.faqMenu},{t:'شكراً',go:B.end}]);});},
  faqMenu(){typing(()=>{add('اختر سؤالك 👇 (قاعدة معرفة محلية)','bot');setOpts([{t:KB[2].q,go:()=>B.ans(2)},{t:KB[1].q,go:()=>B.ans(1)},{t:KB[6].q,go:()=>B.ans(6)},{t:KB[9].q,go:()=>B.ans(9)},{t:KB[10].q,go:()=>B.ans(10)},{t:'لا، شكراً',go:B.end}]);});},
  ans(i){typing(()=>{add(KB[i].a,'bot');setOpts([{t:'سؤال آخر',go:B.faqMenu},{t:'شكراً',go:B.end}]);});},
  safe(){typing(()=>{add('آمن ومعتمد ✅ أعراض بسيطة ليوم أو يومين فقط، واللقاح غير حي لذا لا يسبب المرض.','bot');setOpts([{t:'أسئلة شائعة',go:B.faqMenu},{t:'شكراً',go:B.end}]);});},
