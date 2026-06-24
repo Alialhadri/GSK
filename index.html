@@ -240,6 +240,7 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
     <div class="si" data-v="registry"><span class="si-ic">≣</span>Patient Registry<span class="si-b bB" id="bReg">50</span></div>
     <div class="si" data-v="huddle"><span class="si-ic">☀</span>Morning Huddle<span class="si-b bA" id="bHud">0</span></div>
     <div class="si" data-v="tasks"><span class="si-ic">✓</span>Care Tasks<span class="si-b bR" id="bTask">0</span></div>
+    <div class="si" data-v="complete"><span class="si-ic">🎯</span>Dose 2 Completion<span class="si-b bA" id="bCmp">0</span></div>
     <div class="si" data-v="clinic"><span class="si-ic">🩺</span>Virtual Clinic<span class="si-b bN" id="bVc">0</span></div>
     <div class="sb-sec">Coordination</div>
     <div class="si" data-v="enrol"><span class="si-ic">＋</span>Enrol Patient</div>
@@ -334,6 +335,36 @@ body{background:var(--bg);display:flex;height:100vh;overflow:hidden;-webkit-font
     <button class="btn btn-o btn-sm" data-tf="elig" onclick="renderTasks('elig',this)">Eligibility</button>
   </div>
   <div class="card cp"><div class="ct" style="margin-bottom:3px">Care-team to-do list</div><div class="cs" style="margin-bottom:12px">Actions raised from the Morning Huddle land here, grouped by patient so the team doesn't forget — no duplicates.</div><div id="taskList"></div></div>
+</div>
+
+<!-- DOSE 2 COMPLETION -->
+<div class="view" id="v-complete">
+  <div class="card cp" style="border-top:3px solid var(--gr);margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">
+      <div><div class="ct">🎯 Two-dose completion — finish every series</div><div class="cs">Shingrix is a two-dose vaccine — protection is incomplete until Dose 2, and that's where coverage leaks. This board chases every started patient to completion: schedule → remind (3 &amp; 2 days) → recall.</div></div>
+      <button class="btn btn-g btn-sm" onclick="autoBookD2()">⚡ Book all Dose-2-due (opt-out)</button>
+    </div>
+    <div class="krow" style="margin-top:14px">
+      <div class="kpi" style="--kc:var(--gr)"><div class="kl">Completion rate</div><div class="kv" style="color:var(--grd)" id="cmpPct">0%</div><div class="ks">both doses / started</div></div>
+      <div class="kpi" style="--kc:var(--am)"><div class="kl">Dose 2 due</div><div class="kv" style="color:var(--am)" id="cmpDue">0</div><div class="ks">window open</div></div>
+      <div class="kpi" style="--kc:var(--rd)"><div class="kl">Dose 2 overdue</div><div class="kv" style="color:var(--rd)" id="cmpOver">0</div><div class="ks">recall now</div></div>
+      <div class="kpi" style="--kc:var(--bl)"><div class="kl">Dose 1 only</div><div class="kv" style="color:var(--bl)" id="cmpD1">0</div><div class="ks">to schedule</div></div>
+    </div>
+    <div style="margin-top:12px;height:12px;background:#eef0f4;border-radius:8px;overflow:hidden"><div id="cmpBar" style="height:100%;width:0%;background:linear-gradient(90deg,#2aa66a,#2f7ed8);transition:width .5s"></div></div>
+    <div style="font-size:11px;color:var(--mu);margin-top:6px" id="cmpBarS"></div>
+  </div>
+  <div class="card cp" style="margin-bottom:14px;border-left:3px solid var(--bl)">
+    <div class="ch"><div><div class="ct">① Dose 1 given — schedule Dose 2 <span id="cmpD1N" class="chip ch-b"></span></div><div class="cs">Only partially protected. Book the second dose now (2–6 months; 1–2 months if immunocompromised).</div></div></div>
+    <div id="cmpList1"></div>
+  </div>
+  <div class="card cp" style="margin-bottom:14px;border-left:3px solid var(--am)">
+    <div class="ch"><div><div class="ct">② Dose 2 window open — book &amp; remind <span id="cmpWinN" class="chip ch-a"></span></div><div class="cs">The window is open — send the automatic 3-day and 2-day reminders before the appointment.</div></div><button class="btn btn-o btn-xs" onclick="sendAllD2Reminders()">Send reminders</button></div>
+    <div id="cmpList2"></div>
+  </div>
+  <div class="card cp" style="border-left:3px solid var(--rd)">
+    <div class="ch"><div><div class="ct">③ Dose 2 overdue — recall <span id="cmpOverN" class="chip ch-r"></span></div><div class="cs">Protection incomplete. Message: "no need to restart — one dose finishes it." Re-approach with the educator/physician.</div></div></div>
+    <div id="cmpList3"></div>
+  </div>
 </div>
 
 <!-- VIRTUAL CLINIC -->
@@ -670,6 +701,7 @@ const TT={dash:['Dashboard','Riyadh PHC Cluster · Shingrix Immunisation Program
 registry:['Patient Registry','Enrolled cohort · AI risk scored locally'],
 huddle:['Morning Huddle','Multidisciplinary table round'],
 tasks:['Care Tasks','Coordinator & nurse task queue'],
+complete:['Dose 2 Completion','Finish every two-dose series — schedule, remind, recall'],
 clinic:['Virtual Clinic','Vaccine questions · post-vaccine symptoms · second dose'],
 enrol:['Enrol Patient','Eligibility check & registration'],
 messages:['Patient Messages','Two-way WhatsApp conversations'],
@@ -682,8 +714,32 @@ settings:['Settings','Branding · AI · side effects · integrations']};
 function show(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));document.getElementById('v-'+v).classList.add('on');
   document.querySelectorAll('.si').forEach(s=>s.classList.toggle('on',s.dataset.v===v));
   document.getElementById('tbT').textContent=TT[v][0];document.getElementById('tbS').textContent=TT[v][1];
-  document.querySelector('.content').scrollTop=0;if(v==='bot')botRestart();}
+  document.querySelector('.content').scrollTop=0;if(v==='bot')botRestart();if(v==='complete')renderComplete();}
 document.querySelectorAll('.si').forEach(s=>s.onclick=()=>show(s.dataset.v));
+/* ===== Dose 2 Completion drive ===== */
+function cmpRow(p,actions){return `<div class="rq"><div class="rq-dot ${p.f==='d2over'?'s-ov':'s-due'}"></div><div style="flex:1;cursor:pointer" onclick="openPat(${p.id})"><div class="rq-n">${p.en} ${p.immuno?'<span class="chip ch-r">immunocompromised</span>':''}</div><div class="rq-d">${p.age}y · ${p.profile||p.risk} · Dose 1: ${p.d1} · ${p.phc}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${actions}</div></div>`;}
+function renderComplete(){
+  const e1=document.getElementById('cmpList1');if(!e1)return;
+  const l1=patients.filter(p=>p.f==='d1'),l2=patients.filter(p=>p.f==='d2win'),l3=patients.filter(p=>p.f==='d2over');
+  e1.innerHTML=l1.length?l1.map(p=>cmpRow(p,`<button class="btn btn-b btn-xs" onclick="bookD2(${p.id})">📅 Book Dose 2</button><button class="btn btn-o btn-xs" onclick="messagePat(${p.id})">💬 Message</button><button class="btn btn-g btn-xs" onclick="recordDose2(${p.id})">💉 Record Dose 2</button>`)).join(''):'<div class="note">No Dose-1-only patients pending. 🎉</div>';
+  document.getElementById('cmpList2').innerHTML=l2.length?l2.map(p=>cmpRow(p,`<button class="btn btn-o btn-xs" onclick="remindD2(${p.id},3)">🔔 3-day</button><button class="btn btn-o btn-xs" onclick="remindD2(${p.id},2)">🔔 2-day</button><button class="btn btn-g btn-xs" onclick="recordDose2(${p.id})">💉 Record Dose 2</button>`)).join(''):'<div class="note">No patients in the Dose-2 window.</div>';
+  document.getElementById('cmpList3').innerHTML=l3.length?l3.map(p=>cmpRow(p,`<button class="btn btn-b btn-xs" onclick="messagePat(${p.id})">💬 Recall</button><button class="btn btn-o btn-xs" onclick="logBarrier(${p.id})">Log barrier</button><button class="btn btn-g btn-xs" onclick="recordDose2(${p.id})">💉 Record Dose 2</button>`)).join(''):'<div class="note">No overdue Dose 2 — great. 🎉</div>';
+  document.getElementById('cmpD1N').textContent=l1.length;document.getElementById('cmpWinN').textContent=l2.length;document.getElementById('cmpOverN').textContent=l3.length;
+  updateCompletion();}
+function updateCompletion(){
+  const started=patients.filter(p=>['d1','d2win','d2over','done'].includes(p.f)).length,done=patients.filter(p=>p.f==='done').length;
+  const due=patients.filter(p=>p.f==='d2win').length,over=patients.filter(p=>p.f==='d2over').length,d1=patients.filter(p=>p.f==='d1').length;
+  const pct=started?Math.round(done/started*100):0,set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('cmpPct',pct+'%');set('cmpDue',due);set('cmpOver',over);set('cmpD1',d1);
+  const bar=document.getElementById('cmpBar');if(bar)bar.style.width=pct+'%';
+  set('cmpBarS',done+' of '+started+' started patients completed both doses · target 90%');
+  set('bCmp',d1+due+over);}
+function recordDose2(id){const p=patients[id];p.f='done';const sm=statusMap('done',p.immuno,p.score);Object.assign(p,{st:sm.st,sb:sm.sb,pri:sm.pri,act:sm.act,d2:sm.d2});p.aefiFlag=false;renderReg();refreshMetrics();renderComplete();renderHuddle();toast('Dose 2 recorded ✓ — series complete',p.en);}
+function bookD2(id){const p=patients[id];if(p.f==='d1'){p.f='d2win';const sm=statusMap('d2win',p.immuno,p.score);Object.assign(p,{st:sm.st,sb:sm.sb,pri:sm.pri,act:sm.act,d2:sm.d2});}addTodo('Book Dose 2'+(p.immuno?' (short 1–2 mo interval)':''),'dose','Coordinator',id);renderReg();refreshMetrics();renderComplete();toast('Dose 2 booking raised ✓',p.en);}
+function remindD2(id,days){const p=patients[id];addTodo('Dose 2 reminder ('+days+' days before)','dose','Coordinator',id);toast('Reminder sent ✓',p.en+' · '+days+'-day');}
+function autoBookD2(){let n=0;patients.forEach(p=>{if(p.f==='d1'||p.f==='d2win'){if(p.f==='d1'){p.f='d2win';const sm=statusMap('d2win',p.immuno,p.score);Object.assign(p,{st:sm.st,sb:sm.sb,pri:sm.pri,act:sm.act,d2:sm.d2});}addTodo('Book Dose 2 (opt-out)','dose','Coordinator',p.id);n++;}});renderReg();refreshMetrics();renderComplete();renderHuddle();toast('Auto-booked '+n+' for Dose 2','Opt-out — patients can reschedule');}
+function sendAllD2Reminders(){let n=0;patients.forEach(p=>{if(p.f==='d2win'||p.f==='d2over'){addTodo('Dose 2 reminder (3 & 2 days before)','dose','Coordinator',p.id);n++;}});refreshMetrics();toast('Reminders queued for '+n,'3-day + 2-day WhatsApp');}
+function messagePat(id){const p=patients[id];closePat();show('messages');const el=document.getElementById('msgPt');if(el){el.value=p.en+' · '+p.file;aiMsg();}}
 function toast(m,s){const t=document.getElementById('toast');document.getElementById('t-main').textContent=m;document.getElementById('t-sub').textContent=s||'';t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);}
 
 /* ===== Registry ===== */
@@ -704,6 +760,7 @@ function refreshMetrics(){
   document.getElementById('bHud').textContent=huddleQueue().length;document.getElementById('bTask').textContent=tasks.filter(t=>!t.done).length;
   document.getElementById('bVc').textContent=consults.length;document.getElementById('bDash').textContent=over;
   document.getElementById('dashPri').innerHTML=huddleQueue().slice(0,5).map(p=>`<div class="rq" onclick="show('huddle')"><div class="rq-dot ${p.pri==='wU'?'s-ov':'s-due'}"></div><div style="flex:1"><div class="rq-n">${p.en} <span class="tag ${p.rk}" style="font-weight:600">${p.risk}</span></div><div class="rq-d">${p.age}y · ${p.act}</div></div>${scorePill(p)}</div>`).join('');
+  updateCompletion();
 }
 
 /* ===== Morning Huddle ===== */
@@ -1112,7 +1169,7 @@ function botTask(t){addTodo(t,'call','Coordinator','bot');}
 function botRestart(){B._im=false;B._d2=false;B.start();}
 
 /* ===== init ===== */
-renderReg();refreshMetrics();renderHuddle();renderTasks('all');renderVC();renderMessages();renderEdu();pickSeg(0);botRestart();renderWiz();restoreSession();renderBarriers();renderKB();
+renderReg();refreshMetrics();renderHuddle();renderTasks('all');renderVC();renderMessages();renderEdu();pickSeg(0);botRestart();renderWiz();renderComplete();restoreSession();renderBarriers();renderKB();
 </script>
 </body>
 </html>
